@@ -113,12 +113,6 @@ markdown_extensions:
 
 plugins:
   - search
-  - to-pdf:
-      author: Расул Османов
-      cover_title: "Файлы: missing manual"
-      cover_subtitle: "Практическое руководство по файлам, форматам и инструментам"
-      output_path: "../fb.pdf"
-      enabled_if_env: ENABLE_PDF_EXPORT
 
 extra_css:
   - assets/styles.css
