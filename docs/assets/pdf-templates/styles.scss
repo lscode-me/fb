@@ -1,0 +1,314 @@
+@charset "UTF-8";
+
+/* PDF Print Styles - Main stylesheet */
+
+@page {
+    size: A4;
+    margin: 20mm 15mm 20mm 15mm;
+    
+    @top-center {
+        content: string(chapter-title);
+        font-size: 9pt;
+        color: #666;
+    }
+    
+    @bottom-center {
+        content: counter(page);
+        font-size: 9pt;
+    }
+}
+
+@page :first {
+    @top-center { content: none; }
+    @bottom-center { content: none; }
+}
+
+/* Формулы - стилизуем как блоки кода */
+.arithmatex {
+    font-family: 'JetBrains Mono', 'Menlo', monospace;
+    font-size: 11pt;
+    background: #f5f5f5;
+    padding: 8pt 12pt;
+    margin: 10pt 0;
+    border-radius: 4pt;
+    display: block;
+    text-align: center;
+    border: 1px solid #e0e0e0;
+}
+
+/* Inline формулы */
+.arithmatex:not(.arithmatex-block) {
+    display: inline;
+    padding: 2pt 4pt;
+    margin: 0;
+}
+
+/* Основной текст */
+body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 13.5pt;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* Заголовки */
+h1 {
+    font-size: 28pt;
+    font-weight: 700;
+    margin: 26pt 0 16pt 0;
+    color: #1a1a1a;
+    string-set: chapter-title content();
+}
+
+h2 {
+    font-size: 22pt;
+    font-weight: 600;
+    margin: 22pt 0 14pt 0;
+    color: #1a1a1a;
+}
+
+h3 {
+    font-size: 17pt;
+    font-weight: 600;
+    margin: 18pt 0 10pt 0;
+    color: #333;
+}
+
+h4, h5, h6 {
+    font-size: 14pt;
+    font-weight: 600;
+    margin: 14pt 0 8pt 0;
+}
+
+/* Параграфы */
+p {
+    font-size: 13.5pt;
+    margin: 0 0 10pt 0;
+    text-align: justify;
+    hyphens: auto;
+}
+
+/* Код */
+code {
+    font-family: 'JetBrains Mono', 'Menlo', 'Monaco', monospace;
+    font-size: 11pt;
+    background: #f5f5f5;
+    padding: 2pt 4pt;
+    border-radius: 3pt;
+}
+
+pre {
+    font-family: 'JetBrains Mono', 'Menlo', 'Monaco', monospace;
+    font-size: 11pt;
+    line-height: 1.5;
+    background: #f8f8f8;
+    border: 1px solid #e0e0e0;
+    border-radius: 4pt;
+    padding: 10pt 12pt;
+    margin: 10pt 0;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+}
+
+pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+}
+
+/* Таблицы */
+table {
+    width: 100%;
+    font-size: 8pt;
+    border-collapse: collapse;
+    margin: 8pt 0;
+    page-break-inside: avoid;
+    table-layout: auto;
+}
+
+th, td {
+    padding: 1pt 3pt !important;
+    border: 0.5pt solid #ccc;
+    text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.2;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
+
+/* Первый и последний столбцы - перенос разрешён */
+td:first-child, td:last-child {
+    white-space: normal;
+}
+
+th {
+    background: #f0f0f0;
+    font-weight: 600;
+    font-size: 8pt;
+    text-align: center;
+}
+
+/* Списки */
+ul, ol {
+    margin: 8pt 0;
+    padding-left: 20pt;
+}
+
+li {
+    font-size: 13.5pt;
+    margin-bottom: 4pt;
+}
+
+li > ul, li > ol {
+    margin: 3pt 0;
+}
+
+/* Admonitions */
+.admonition {
+    font-size: 12pt;
+    margin: 12pt 0;
+    padding: 10pt 12pt 10pt 14pt;
+    border-left: 3pt solid #1976d2;
+    background: #f8f9fa;
+    page-break-inside: avoid;
+}
+
+/* Убираем иконки в PDF - они наезжают на контент */
+.admonition-title::before {
+    content: none !important;
+    display: none !important;
+}
+
+.admonition .admonition-title {
+    padding-left: 0;
+    margin-left: 0;
+}
+
+/* Таблицы внутри admonitions - добавляем отступ сверху */
+.admonition table {
+    margin-top: 8pt;
+}
+
+.admonition.warning {
+    border-left-color: #ff9800;
+    background: #fff8e1;
+}
+
+.admonition.danger, .admonition.error {
+    border-left-color: #f44336;
+    background: #ffebee;
+}
+
+.admonition.tip, .admonition.success {
+    border-left-color: #4caf50;
+    background: #e8f5e9;
+}
+
+.admonition-title {
+    font-size: 13pt;
+    font-weight: 600;
+    margin-bottom: 6pt;
+    padding-left: 0;
+}
+
+/* Цитаты */
+blockquote {
+    font-size: 12pt;
+    font-style: italic;
+    color: #555;
+    border-left: 3pt solid #ccc;
+    margin: 10pt 0;
+    padding: 6pt 0 6pt 14pt;
+}
+
+/* Ссылки */
+a {
+    color: #1976d2;
+    text-decoration: none;
+}
+
+/* Картинки */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+figure {
+    margin: 10pt 0;
+    text-align: center;
+}
+
+figcaption {
+    font-size: 10pt;
+    color: #666;
+    margin-top: 4pt;
+}
+
+/* Горизонтальная линия */
+hr {
+    border: none;
+    border-top: 0.5pt solid #ddd;
+    margin: 12pt 0;
+}
+
+/* Definition lists */
+dl {
+    margin: 10pt 0;
+}
+
+dt {
+    font-weight: 600;
+    font-size: 13.5pt;
+    margin-top: 8pt;
+}
+
+dd {
+    margin-left: 18pt;
+    margin-bottom: 6pt;
+    font-size: 13.5pt;
+}
+
+/* Footnotes */
+.footnote {
+    font-size: 11pt;
+}
+
+/* Tabs в PDF - показываем все */
+.tabbed-set {
+    margin: 10pt 0;
+}
+
+.tabbed-set > input {
+    display: none;
+}
+
+.tabbed-set > label {
+    display: inline-block;
+    font-size: 10pt;
+    font-weight: 600;
+    padding: 5pt 10pt;
+    background: #e0e0e0;
+    margin-right: 3pt;
+}
+
+.tabbed-content {
+    display: block !important;
+    border: 0.5pt solid #ddd;
+    padding: 8pt;
+    margin-bottom: 8pt;
+}
+
+/* Mermaid - масштабируем */
+.mermaid {
+    max-width: 100%;
+    margin: 10pt auto;
+    text-align: center;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}

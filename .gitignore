@@ -1,0 +1,6 @@
+.venv/
+site/
+.DS_Store
+.codex/
+*.pdf
+BOOK_STRUCTURE.md

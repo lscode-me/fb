@@ -1,0 +1,41 @@
+:root {
+  --md-primary-fg-color: #1f2937;
+  --md-accent-fg-color: #0ea5e9;
+}
+
+.md-typeset h1, .md-typeset h2, .md-typeset h3 {
+  letter-spacing: -0.01em;
+}
+
+.md-typeset table:not([class]) {
+  font-size: 0.95rem;
+}
+
+/* Sticky top navigation items (Главная, О проекте, О книге) */
+.md-sidebar--primary .md-nav--primary > .md-nav__list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* First 3 items stay at top */
+.md-sidebar--primary .md-nav--primary > .md-nav__list > .md-nav__item:nth-child(-n+3) {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--md-default-bg-color);
+  border-bottom: 1px solid var(--md-default-fg-color--lightest);
+}
+
+.md-sidebar--primary .md-nav--primary > .md-nav__list > .md-nav__item:nth-child(1) {
+  top: 0;
+}
+
+.md-sidebar--primary .md-nav--primary > .md-nav__list > .md-nav__item:nth-child(2) {
+  top: 2.4rem;
+}
+
+.md-sidebar--primary .md-nav--primary > .md-nav__list > .md-nav__item:nth-child(3) {
+  top: 4.8rem;
+  border-bottom: 2px solid var(--md-primary-fg-color);
+  margin-bottom: 0.5rem;
+}

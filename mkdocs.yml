@@ -1,0 +1,130 @@
+site_name: "Файлы: missing manual"
+site_description: "Практическое руководство по файлам, форматам и инструментам"
+site_author: "Расул Османов"
+repo_url: "https://github.com/lscode-me/fb"
+repo_name: "lscode-me/fb"
+site_url: "https://fb.lscode.me/"
+extra:
+  social:
+    - icon: fontawesome/solid/envelope
+      link: mailto:admin@lscode.me
+copyright: "© 2026 Расул Османов. Лицензия CC BY-SA 4.0"
+
+nav:
+  - Главная: index.md
+  - О проекте: about.md
+  - О книге: chapters/ch0/00-intro.md
+  - "Часть I. Файлы как элемент файловой системы":
+      - Введение: chapters/ch1/00-intro.md
+      - "Глава 1. Что такое файл": chapters/ch1/01-file-definition.md
+      - "Глава 2. Типы файлов": chapters/ch1/02-file-types-content.md
+      - "Глава 3. Метаданные и inode": chapters/ch1/03-metadata-inode.md
+      - "Глава 4. Ссылки": chapters/ch1/04-links.md
+      - "Глава 5. Файловые операции": chapters/ch1/05-file-operations.md
+      - "Глава 6. Права доступа": chapters/ch1/06-permissions.md
+      - "Глава 7. Дескрипторы и потоки": chapters/ch1/07-descriptors.md
+      - "Глава 8. Пути и имена": chapters/ch1/08-paths-names.md
+      - "Глава 9. Расширенные атрибуты": chapters/ch1/09-extended-attrs.md
+  - "Часть II. Файлы как контейнеры данных":
+      - Введение: chapters/ch2/00-intro.md
+      - "Глава 10. Бинарные данные": chapters/ch2/10-binary-levels.md
+      - "Глава 11. От битов к байтам": chapters/ch2/11-bytes-encoding.md
+      - "Глава 12. ASCII": chapters/ch2/12-ascii.md
+      - "Глава 13. Вавилонская башня кодировок": chapters/ch2/13-encodings-babel.md
+      - "Глава 14. Unicode и UTF-8": chapters/ch2/14-unicode-utf8.md
+      - "Глава 15. Кодировки в Python": chapters/ch2/15-python-encodings.md
+  - "Часть III. Форматы файлов":
+      - Введение: chapters/ch3/00-intro.md
+      - "Глава 16. JSON": chapters/ch3/16-json.md
+      - "Глава 17. YAML": chapters/ch3/17-yaml.md
+      - "Глава 18. TOML и INI": chapters/ch3/18-toml-ini.md
+      - "Глава 19. CSV и TSV": chapters/ch3/19-csv-tsv.md
+      - "Глава 20. XML": chapters/ch3/20-xml.md
+      - "Глава 21. Бинарная сериализация": chapters/ch3/21-binary-serialization.md
+      - "Глава 22. Структура бинарных файлов": chapters/ch3/22-binary-structure.md
+      - "Глава 23. Форматы для больших данных": chapters/ch3/23-bigdata-formats.md
+      - "Глава 24. Архивы и контейнеры": chapters/ch3/24-archives.md
+      - "Глава 25. Медиафайлы": chapters/ch3/25-media.md
+  - "Часть IV. Работа с файлами и потоками":
+      - Введение: chapters/ch4/00-intro.md
+      - "Глава 26. Потоки данных": chapters/ch4/26-streams.md
+      - "Глава 27. Coreutils": chapters/ch4/27-coreutils.md
+      - "Глава 28. grep, sed, awk": chapters/ch4/28-text-processing.md
+      - "Глава 29. Редакторы": chapters/ch4/29-editors.md
+      - "Глава 30. Итераторы в языках": chapters/ch4/30-languages.md
+      - "Глава 31. Python подробно": chapters/ch4/31-python-deep.md
+      - "Глава 32. Современные инструменты": chapters/ch4/32-modern-tools.md
+      - "Глава 33. DuckDB": chapters/ch4/33-duckdb.md
+  - "Часть V. Инфраструктура хранения":
+      - Введение: chapters/ch5/00-intro.md
+      - "Глава 34. Архитектура накопителей": chapters/ch5/34-architecture.md
+      - "Глава 35. Разделы и таблицы разделов": chapters/ch5/35-partitions.md
+      - "Глава 36. Файловые системы UNIX": chapters/ch5/36-unix-fs.md
+      - "Глава 37. Файловые системы Windows": chapters/ch5/37-windows-fs.md
+      - "Глава 38. Файловые системы BSD": chapters/ch5/38-bsd-fs.md
+      - "Глава 39. Файловые системы Linux": chapters/ch5/39-linux-fs.md
+      - "Глава 40. ZFS": chapters/ch5/40-zfs.md
+      - "Глава 41. Btrfs": chapters/ch5/41-btrfs.md
+      - "Глава 42. mdadm — программный RAID": chapters/ch5/42-mdadm.md
+      - "Глава 43. LVM": chapters/ch5/43-lvm.md
+      - "Глава 44. Сетевые протоколы": chapters/ch5/44-protocols.md
+      - "Глава 45. S3 — объектное хранилище": chapters/ch5/45-s3.md
+      - "Глава 46. HTTP для файлов": chapters/ch5/46-http.md
+      - "Глава 47. Git как файловая система": chapters/ch5/47-git-fs.md
+      - "Глава 48. Plan 9": chapters/ch5/48-plan9.md
+      - "Глава 49. Namespaces и контейнеры": chapters/ch5/49-containers.md
+      - "Глава 50. Токенизация для LLM": chapters/ch5/50-tokenization.md
+  - Глоссарий: glossary.md
+
+theme:
+  name: material
+  language: ru
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - footnotes
+  - tables
+  - def_list
+  - toc:
+      permalink: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji
+  - pymdownx.arithmatex:
+      generic: true
+
+plugins:
+  - search
+  - to-pdf:
+      author: Расул Османов
+      cover_title: "Файлы: missing manual"
+      cover_subtitle: "Практическое руководство по файлам, форматам и инструментам"
+      output_path: "../fb.pdf"
+      enabled_if_env: ENABLE_PDF_EXPORT
+
+extra_css:
+  - assets/styles.css
+
+extra_javascript:
+  - https://unpkg.com/mermaid@10/dist/mermaid.min.js
+  - assets/mermaid-init.js
+  - assets/mathjax-config.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240" viewBox="0 0 640 240">
+  <rect x="20" y="20" width="600" height="200" rx="12" fill="#f3f4f6" stroke="#9ca3af"/>
+  <text x="40" y="60" font-family="Arial, sans-serif" font-size="18" fill="#111827">Файловая система</text>
+  <rect x="40" y="90" width="170" height="90" rx="8" fill="#ffffff" stroke="#9ca3af"/>
+  <text x="60" y="125" font-family="Arial, sans-serif" font-size="14" fill="#111827">Метаданные</text>
+  <rect x="235" y="90" width="170" height="90" rx="8" fill="#ffffff" stroke="#9ca3af"/>
+  <text x="255" y="125" font-family="Arial, sans-serif" font-size="14" fill="#111827">Данные</text>
+  <rect x="430" y="90" width="170" height="90" rx="8" fill="#ffffff" stroke="#9ca3af"/>
+  <text x="450" y="125" font-family="Arial, sans-serif" font-size="14" fill="#111827">Каталоги</text>
+</svg>
