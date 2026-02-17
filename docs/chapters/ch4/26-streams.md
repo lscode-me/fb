@@ -587,6 +587,145 @@ $ read -s password < /dev/tty
 
 ---
 
+## 26.8 Pipe и FIFO в деталях
+
+Анонимный **pipe** (`|`) — основа Unix-философии. Но у него есть нюансы, которые важно знать.
+
+### Анатомия pipe
+
+```text
+┌──────────┐                    ┌──────────┐
+│ Process A│    Pipe (64 КБ)    │ Process B│
+│ (writer) │──→ ████████████ ──→│ (reader) │
+│ stdout=1 │    Буфер в ядре    │ stdin=0  │
+└──────────┘                    └──────────┘
+```
+
+**Размер буфера pipe**: 64 КБ на Linux (`/proc/sys/fs/pipe-max-size` — максимум 1 МБ).
+
+```bash
+# Узнать размер буфера pipe
+python3 -c "import fcntl, os; r,w = os.pipe(); print(fcntl.fcntl(w, 1032))"  # F_GETPIPE_SZ
+# 65536 (64 КБ)
+```
+
+### Deadlock при полном буфере
+
+Если writer заполнит буфер, а reader не читает — writer **заблокируется**:
+
+```bash
+# Генерируем 1 МБ → pipe буфер 64 КБ → deadlock?
+yes "Hello" | head -n 100   # OK: head закроет pipe, yes получит SIGPIPE
+
+# Реальная проблема: программа пишет в stdout И stderr через pipe
+# но читатель читает только stdout → stderr заполняет буфер → deadlock
+```
+
+### Именованные каналы (FIFO)
+
+**FIFO** (named pipe) — pipe с именем в файловой системе. Позволяет связать **независимые** процессы:
+
+```bash
+# Создание FIFO
+mkfifo /tmp/myfifo
+ls -la /tmp/myfifo
+# prw-r--r-- 1 user user 0 Feb  5 10:00 /tmp/myfifo
+# ^── тип 'p' (pipe)
+
+# Терминал 1 — писатель (заблокируется, пока нет читателя!)
+echo "Hello from writer" > /tmp/myfifo
+
+# Терминал 2 — читатель
+cat /tmp/myfifo   # → "Hello from writer"
+
+# Удаление
+rm /tmp/myfifo
+```
+
+### Python: обмен данными через FIFO
+
+```python
+import os, json
+
+FIFO_PATH = "/tmp/data_pipe"
+
+# Создаём FIFO (если не существует)
+if not os.path.exists(FIFO_PATH):
+    os.mkfifo(FIFO_PATH)
+
+# ── Producer (один скрипт) ──
+with open(FIFO_PATH, "w") as fifo:
+    for i in range(10):
+        fifo.write(json.dumps({"id": i, "value": i * 2}) + "\n")
+        fifo.flush()  # Важно! Иначе данные застрянут в буфере Python
+
+# ── Consumer (другой скрипт) ──
+with open(FIFO_PATH, "r") as fifo:
+    for line in fifo:
+        data = json.loads(line)
+        print(f"Получено: id={data['id']}, value={data['value']}")
+```
+
+!!! tip "Pipe vs Socket vs Shared Memory"
+    | Механизм | Направление | Скорость | Сеть | Удобство |
+    |----------|-------------|----------|------|----------|
+    | **Pipe/FIFO** | Однонаправленный | Быстро | ❌ | ✅ Просто |
+    | **Unix Socket** | Двунаправленный | Быстро | ❌ | Средне |
+    | **TCP Socket** | Двунаправленный | Медленнее | ✅ | Средне |
+    | **Shared Memory** | Произвольный | Очень быстро | ❌ | ❌ Сложно |
+
+---
+
+## 26.9 io_uring — современный асинхронный I/O
+
+Традиционный I/O в Linux: каждый `read()`/`write()` — **системный вызов** (переключение контекста user → kernel → user). При 100 000 операций/с это серьёзная нагрузка.
+
+**io_uring** (Linux 5.1+, 2019) — кольцевой буфер между user-space и kernel, позволяющий **батчить** операции без переключения контекста:
+
+```text
+Традиционный I/O:
+  read()  → [syscall] → ядро → [syscall return] → данные
+  read()  → [syscall] → ядро → [syscall return] → данные
+  read()  → [syscall] → ядро → [syscall return] → данные
+  = 3 переключения контекста
+
+io_uring:
+  submit(read, read, read) → [1 syscall] → ядро обрабатывает все → [1 syscall return]
+  = или даже 0 syscalls (polling mode)
+```
+
+### Где используется
+
+| Проект | Как использует io_uring |
+|--------|------------------------|
+| **Nginx** (1.26+) | Чтение файлов, отправка в socket |
+| **RocksDB** / **io_uring** | Устраняет bottleneck I/O при компакции |
+| **Tokio** (Rust) | `tokio-uring` — async runtime для файлового I/O |
+| **liburing** | C-библиотека, обёртка над io_uring |
+
+### Python и io_uring
+
+```python
+# Прямого API в стандартной библиотеке нет, но есть обёртки:
+# pip install liburing  (low-level)
+# pip install trio      (поддержка io_uring через backend)
+
+# Для большинства задач достаточно asyncio + aiofiles:
+import asyncio, aiofiles
+
+async def read_many_files(paths):
+    results = []
+    for path in paths:
+        async with aiofiles.open(path, "r") as f:
+            results.append(await f.read())
+    return results
+```
+
+!!! info "Не только файлы"
+    `io_uring` изначально создан для файлового I/O, но поддерживает и сетевые операции (`accept`, `send`, `recv`), и даже `openat`, `stat`, `mkdir`. Это универсальный механизм асинхронного взаимодействия с ядром.
+
+---
+
 ## Резюме
 
 ### Стандартные потоки

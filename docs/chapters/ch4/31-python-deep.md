@@ -618,6 +618,75 @@ for row in process_large_csv("huge.csv"):
 
 ---
 
+## 31.8 Встроенные хранилища: dbm и shelve
+
+Python имеет **встроенные** модули для файлового хранения «ключ-значение» — без установки внешних зависимостей.
+
+### dbm — простой key-value store
+
+```python
+import dbm
+
+# Создание/открытие БД (файл data.db + индекс)
+with dbm.open("mydata", "c") as db:  # 'c' = создать если нет
+    # Запись (ключи и значения — bytes или str)
+    db["user:1"] = "Alice"
+    db["user:2"] = "Bob"
+    db["counter"] = "42"
+    
+    # Чтение
+    print(db["user:1"])     # b'Alice'
+    print("user:3" in db)   # False
+    
+    # Итерация
+    for key in db.keys():
+        print(key, db[key])
+```
+
+**Ограничения dbm**: ключи и значения — только строки/байты. Нет типизации, нет вложенных структур.
+
+### shelve — «полка» для Python-объектов
+
+`shelve` оборачивает `dbm`, добавляя сериализацию через `pickle`:
+
+```python
+import shelve
+
+with shelve.open("myshelf") as shelf:
+    # Можно хранить ЛЮБЫЕ Python-объекты
+    shelf["config"] = {"debug": True, "version": "1.2.3"}
+    shelf["users"] = [
+        {"name": "Alice", "age": 30},
+        {"name": "Bob", "age": 25}
+    ]
+    shelf["counter"] = 42
+    
+    # Чтение
+    config = shelf["config"]
+    print(config["debug"])  # True
+    
+    # Внимание: мутация вложенных объектов
+    # shelf["users"].append({"name": "Charlie"})  # ❌ НЕ сохранится!
+    users = shelf["users"]
+    users.append({"name": "Charlie", "age": 28})
+    shelf["users"] = users  # ✅ Нужно перезаписать
+```
+
+### Когда использовать
+
+| Задача | dbm | shelve | SQLite | JSON-файл |
+|--------|-----|--------|--------|-----------|
+| Простой кэш | ✅ | ✅ | Избыточно | ✅ |
+| Сложные объекты | ❌ | ✅ | ❌ | ⚠️ (нужна сериализация) |
+| Конкурентный доступ | ❌ | ❌ | ✅ | ❌ |
+| Запросы/фильтрация | ❌ | ❌ | ✅ | ❌ |
+| Переносимость | ⚠️ | ❌ (pickle) | ✅ | ✅ |
+
+!!! warning "Безопасность shelve"
+    `shelve` использует `pickle`, который **исполняет произвольный код** при десериализации. Никогда не открывайте shelf-файлы из **недоверенных источников**.
+
+---
+
 ## Резюме
 
 | Модуль | Назначение |

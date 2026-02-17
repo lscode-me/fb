@@ -467,6 +467,38 @@ pip install duckdb
 
 ---
 
+## 32.7 Дополнительные полезные инструменты
+
+| Инструмент | Назначение | Замена для | Установка |
+|-----------|-----------|-----------|-----------|
+| **[uv](https://github.com/astral-sh/uv)** | Менеджер пакетов Python (10-100× быстрее pip) | pip, pip-tools, venv | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+| **[dust](https://github.com/bootandy/dust)** | Визуализация использования диска | `du` | `brew install dust` / `cargo install du-dust` |
+| **[tokei](https://github.com/XAMPPRocky/tokei)** | Статистика строк кода по языкам | `cloc`, `sloccount` | `brew install tokei` / `cargo install tokei` |
+| **[hexyl](https://github.com/sharkdp/hexyl)** | Hex-просмотрщик с подсветкой | `xxd`, `hexdump` | `brew install hexyl` / `cargo install hexyl` |
+| **[delta](https://github.com/dandavison/delta)** | Красивый diff (для git) | `diff`, `colordiff` | `brew install git-delta` |
+| **[zoxide](https://github.com/ajeetdsouza/zoxide)** | Умная навигация по директориям | `cd`, `autojump` | `brew install zoxide` |
+
+```bash
+# uv — молниеносная установка пакетов
+uv pip install pandas numpy  # В 10-100 раз быстрее pip!
+uv venv .venv                # Создание venv за миллисекунды
+
+# dust — где место на диске?
+dust -n 10 /home             # Топ-10 директорий по размеру
+
+# tokei — сколько кода в проекте?
+tokei ./src
+# ───────────────────────────────────
+#  Language   Files  Lines  Code  Comments  Blanks
+#  Python     42     12345  9876  1234      1235
+#  YAML       8      456    400   20        36
+
+# hexyl — красивый hex-дамп
+hexyl --length 128 photo.jpg
+```
+
+---
+
 ## Резюме
 
 | Инструмент | Сильные стороны |
