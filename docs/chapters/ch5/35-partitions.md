@@ -4,6 +4,23 @@
 
 Прежде чем файловая система сможет хранить данные, диск должен быть **разбит на разделы** (partitions). Раздел — это логически обособленная часть диска, которая может содержать отдельную файловую систему.
 
+!!! warning "Разделы не обязательны!"
+    Можно создать файловую систему **напрямую** на блочном устройстве, без таблицы разделов:
+    
+    ```bash
+    # Создаём ext4 прямо на /dev/sdb (весь диск, без разделов)
+    $ sudo mkfs.ext4 /dev/sdb
+    $ sudo mount /dev/sdb /mnt/disk
+    ```
+    
+    Это называется **superfloppy** (или whole-disk filesystem). Используется для:
+    
+    - Простых флешек и SD-карт
+    - Виртуальных дисков
+    - Временных хранилищ
+    
+    Однако в большинстве случаев разделы **необходимы** — вот почему:
+
 ---
 
 ## 35.1 Зачем нужны разделы
@@ -42,8 +59,27 @@
 **Ограничения MBR:**
 
 - Максимум 4 первичных раздела (или 3 + расширенный)
-- Максимальный размер раздела: 2 TB
-- Только один загрузочный раздел
+- Максимальный размер раздела: 2 ТБ (2^32 × 512 байт)
+- Максимальный размер диска: 2 ТБ
+- Загрузка: только BIOS/Legacy
+
+!!! info "Primary, Extended, Logical"
+    MBR поддерживает три типа разделов:
+    
+    - **Primary** (первичный) — до 4 штук, может быть загрузочным
+    - **Extended** (расширенный) — контейнер, занимает 1 слот primary
+    - **Logical** (логический) — создаётся внутри extended, практически без ограничения количества
+    
+    ```
+    MBR Disk:
+    ├── Primary 1 (/dev/sda1)      ← Загрузочный
+    ├── Primary 2 (/dev/sda2)
+    ├── Primary 3 (/dev/sda3)
+    └── Extended (/dev/sda4)       ← Контейнер
+        ├── Logical 1 (/dev/sda5)
+        ├── Logical 2 (/dev/sda6)
+        └── Logical 3 (/dev/sda7)
+    ```
 
 ```bash
 # Просмотр MBR таблицы
@@ -153,7 +189,73 @@ sudo parted -s /dev/sdb mklabel gpt \
 
 ---
 
-## 35.5 Практические сценарии
+## 35.5 Разделы в разных ОС
+
+### FreeBSD: gpart
+
+```bash
+# Просмотр GPT-разделов
+$ gpart show ada0
+=>       40  500118192  ada0  GPT  (238G)
+         40     532480     1  efi  (260M)
+     532520  499585672     2  freebsd-ufs  (238G)
+
+# Создание раздела
+$ gpart add -t freebsd-ufs -l data ada0
+
+# Удаление раздела
+$ gpart delete -i 2 ada0
+```
+
+### OpenBSD: disklabel
+
+OpenBSD использует **disklabel** поверх MBR/GPT. Буквы `a`–`p` обозначают партиции внутри disklabel:
+
+- `a` — обычно root (`/`)
+- `b` — swap
+- `c` — весь диск (raw, не трогать)
+- `d`–`p` — пользовательские
+
+```bash
+# Просмотр disklabel
+$ disklabel sd0
+# /dev/sd0c:
+type: SCSI
+16 partitions:
+#   size   offset  fstype
+ a: 4.0G       64  4.2BSD    # /
+ b: 8.0G  8388672  swap
+ d: 50.0G 25165888 4.2BSD    # /usr
+
+# Редактирование
+$ disklabel -E sd0
+```
+
+### Windows: PowerShell и diskpart
+
+```powershell
+# Список разделов
+PS> Get-Partition | Format-Table DiskNumber,PartitionNumber,Size,Type,DriveLetter
+
+DiskNumber PartitionNumber       Size Type     DriveLetter
+---------- ---------------       ---- ----     -----------
+         0               1  512.00 MB System
+         0               2  237.96 GB Basic    C
+         1               1    3.64 TB Basic    D
+
+# Создать раздел
+PS> New-Partition -DiskNumber 1 -UseMaximumSize -DriveLetter E
+
+# diskpart (CLI)
+> diskpart
+DISKPART> list disk
+DISKPART> select disk 0
+DISKPART> list partition
+```
+
+---
+
+## 35.6 Практические сценарии
 
 ### Создание разделов для сервера
 
@@ -192,9 +294,19 @@ sudo resize2fs /dev/sdb3      # ext4
 sudo xfs_growfs /mount/point  # XFS
 ```
 
+### Типичная схема разделов Windows
+
+```
+Disk 0
+├── Partition 1  512 MB   EFI System (FAT32)
+├── Partition 2  128 MB   Microsoft Reserved
+├── Partition 3  237 GB   C: (NTFS)
+└── Partition 4  1 GB     Recovery (NTFS)
+```
+
 ---
 
-## 35.6 Идентификация разделов
+## 35.7 Идентификация разделов
 
 ### По имени устройства
 

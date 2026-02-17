@@ -670,217 +670,38 @@ shred -u /tmp/decrypted.img
 ## Уровень 2: Partitions (разделы диска)
 
 !!! info "Подробнее"
-    Детальное сравнение MBR vs GPT, практическая разметка дисков — в [Главе 35. Разделы](35-partitions.md).
-
-### Что это?
+    Детальное сравнение MBR vs GPT, практическая разметка дисков, инструменты для разных ОС — в [Главе 35. Разделы](35-partitions.md).
 
 **Раздел** (partition) — это логическое деление блочного устройства на независимые области. Каждый раздел может иметь свою файловую систему.
 
-!!! warning "Разделы не обязательны!"
-    Можно создать файловую систему **напрямую** на блочном устройстве, без таблицы разделов:
-    
-    ```bash
-    # Создаём ext4 прямо на /dev/sdb (весь диск, без разделов)
-    $ sudo mkfs.ext4 /dev/sdb
-    
-    # Монтируем
-    $ sudo mount /dev/sdb /mnt/disk
-    ```
-    
-    Это называется **superfloppy** или **whole-disk filesystem**. Используется для:
-    
-    - Простых флешек и SD-карт
-    - Виртуальных дисков
-    - Временных хранилищ
-    
-
-### Зачем нужны разделы?
-
-1. **Разделение данных** — ОС на одном разделе, данные на другом. При переустановке ОС данные сохраняются.
-2. **Мультизагрузка** — несколько ОС на одном диске (Windows + Linux, разные дистрибутивы).
-3. **Изоляция** — заполнение `/home` не повлияет на `/` (система продолжит работать).
-4. **Разные файловые системы** — ext4 для Linux, FAT32 для EFI, swap для подкачки.
-5. **Производительность** — оптимизация под разные нагрузки (база данных на отдельном разделе).
-6. **Безопасность** — шифрование только определённых разделов, разные права монтирования.
-
-### Схемы разделов (Partition Tables)
-
-#### MBR (Master Boot Record) — устаревшая
-
-MBR хранится в первых 512 байтах диска и содержит:
-- **Загрузочный код** (446 байт) — bootstrap loader
-- **Таблицу разделов** (64 байта) — 4 записи по 16 байт
-- **Сигнатуру** (2 байта) — `0x55AA`
-
-| Характеристика | Значение |
-|----------------|----------|
-| Максимум разделов | 4 **primary** (первичных) или 3 primary + 1 **extended** |
-| Extended раздел | Контейнер для **logical** (логических) разделов |
-| Макс. размер диска | 2 ТБ (2^32 × 512 байт) |
-| Макс. размер раздела | 2 ТБ |
-| Загрузка | BIOS/Legacy |
-
-!!! info "Primary, Extended, Logical"
-    - **Primary partition** (первичный) — до 4 штук, загрузочный
-    - **Extended partition** (расширенный) — контейнер, занимает 1 слот primary
-    - **Logical partition** (логический) — внутри extended, количество не ограничено (практически)
-    
-    ```
-    MBR Disk:
-    ├── Primary 1 (/dev/sda1)      ← Загрузочный
-    ├── Primary 2 (/dev/sda2)
-    ├── Primary 3 (/dev/sda3)
-    └── Extended (/dev/sda4)       ← Контейнер
-        ├── Logical 1 (/dev/sda5)
-        ├── Logical 2 (/dev/sda6)
-        └── Logical 3 (/dev/sda7)
-    ```
-
-#### GPT (GUID Partition Table) — современная
-
-GPT — часть стандарта UEFI, хранит информацию в начале И конце диска (backup).
-
-| Характеристика | Значение |
-|----------------|----------|
-| Максимум разделов | 128 (стандартно), теоретически неограниченно |
-| Макс. размер диска | 9.4 ZB (зеттабайт, 2^64 × 512 байт) |
-| Макс. размер раздела | 9.4 ZB |
-| Идентификация | GUID (128-бит UUID) для каждого раздела |
-| Загрузка | UEFI (с Protective MBR для совместимости) |
-| Целостность | CRC32 checksums |
-
-!!! note "Тип раздела (Partition Type GUID)"
-    GPT хранит тип файловой системы/назначение в метаданных раздела:
-    
-    | GUID | Назначение |
-    |------|-----------|
-    | `C12A7328-...` | EFI System Partition |
-    | `0FC63DAF-...` | Linux filesystem |
-    | `EBD0A0A2-...` | Microsoft basic data (NTFS) |
-    | `0657FD6D-...` | Linux swap |
-    
-    Это позволяет ОС понять назначение раздела до его монтирования.
-
-### Работа с разделами в разных ОС
-
-#### Linux
-
-```bash
-# Просмотр разделов
-$ sudo fdisk -l /dev/sda
-Disk /dev/sda: 238.5 GiB, 256060514304 bytes, 500118192 sectors
-Disklabel type: gpt
-
-Device       Start       End   Sectors  Size Type
-/dev/sda1     2048   1050623   1048576  512M EFI System
-/dev/sda2  1050624 500118158 499067535  238G Linux filesystem
-
-# Интерактивное редактирование (GPT)
-$ sudo gdisk /dev/sda
-
-# Или с помощью parted
-$ sudo parted /dev/sda print
-Model: ATA Samsung SSD 970 (scsi)
-Partition Table: gpt
-Number  Start   End     Size    File system  Name  Flags
- 1      1049kB  538MB   537MB   fat32              boot, esp
- 2      538MB   256GB   256GB   ext4
-
-# Просмотр UUID разделов
-$ blkid
-/dev/sda1: UUID="ABCD-1234" TYPE="vfat" PARTLABEL="EFI"
-/dev/sda2: UUID="a1b2c3d4-..." TYPE="ext4" PARTLABEL="Linux"
+```
+┌──────────────────────────────────────────────────┐
+│              Физический диск /dev/sda              │
+├──────────┬──────────┬──────────┬─────────────────┤
+│ Раздел 1 │ Раздел 2 │ Раздел 3 │    Раздел 4     │
+│ EFI/FAT32│  / ext4  │   swap   │  /home ext4     │
+│  512 MB  │   50 GB  │   8 GB   │   180 GB        │
+└──────────┴──────────┴──────────┴─────────────────┘
 ```
 
-#### FreeBSD
+**Зачем нужны разделы?** Изоляция данных от ОС, мультизагрузка, разные ФС для разных задач, безопасность (шифрование отдельных разделов).
 
-```bash
-# GPT разделы
-$ gpart show ada0
-=>       40  500118192  ada0  GPT  (238G)
-         40     532480     1  efi  (260M)
-     532520  499585672     2  freebsd-ufs  (238G)
+Две схемы таблиц разделов:
 
-# Создание раздела
-$ gpart add -t freebsd-ufs -l data ada0
-```
-
-#### OpenBSD
-
-```bash
-# Disklabel (поверх MBR/GPT)
-$ disklabel sd0
-# /dev/sd0c:
-type: SCSI
-16 partitions:
-#   size   offset  fstype
- a: 4.0G       64  4.2BSD    # /
- b: 8.0G  8388672  swap
- c: 238G        0  unused    # Весь диск (raw)
- d: 50.0G 25165888 4.2BSD    # /usr
-
-# Редактирование
-$ disklabel -E sd0
-```
-
-#### Windows
-
-```powershell
-# Список разделов
-PS> Get-Partition | Format-Table DiskNumber,PartitionNumber,Size,Type,DriveLetter
-
-DiskNumber PartitionNumber       Size Type     DriveLetter
----------- ---------------       ---- ----     -----------
-         0               1  512.00 MB System
-         0               2  237.96 GB Basic    C
-         1               1    3.64 TB Basic    D
-
-# Создать раздел
-PS> New-Partition -DiskNumber 1 -UseMaximumSize -DriveLetter E
-
-# diskpart (CLI)
-> diskpart
-DISKPART> list disk
-DISKPART> select disk 0
-DISKPART> list partition
-```
-
-### Типичная схема разделов
-
-#### Linux:
-
-```
-/dev/sda
-├── /dev/sda1  512 MB   EFI System Partition (FAT32)
-├── /dev/sda2  50 GB    / (root) (ext4)
-├── /dev/sda3  8 GB     swap
-└── /dev/sda4  180 GB   /home (ext4)
-```
-
-#### Windows:
-
-```
-Disk 0
-├── Partition 1  512 MB   EFI System (FAT32)
-├── Partition 2  128 MB   Microsoft Reserved
-├── Partition 3  237 GB   C: (NTFS)
-└── Partition 4  1 GB     Recovery (NTFS)
-```
+| | MBR (устаревшая) | GPT (современная) |
+|-|-------------------|-------------------|
+| **Макс. разделов** | 4 primary (+ logical) | 128 |
+| **Макс. размер** | 2 ТБ | 9.4 ZB |
+| **Загрузка** | BIOS/Legacy | UEFI |
+| **Резервная копия** | Нет | Да (в конце диска) |
+| **Целостность** | Нет | CRC32 checksums |
 
 ## Уровень 3: Filesystem (файловая система)
 
 !!! info "Подробнее"
-    Детальное описание конкретных файловых систем: [Глава 36 (UNIX)](36-unix-fs.md), [Глава 37 (Windows)](37-windows-fs.md), [Глава 38 (BSD)](38-bsd-fs.md), [Глава 39 (Linux)](39-linux-fs.md), [Глава 40 (ZFS)](40-zfs.md), [Глава 41 (Btrfs)](41-btrfs.md).
+    Детальное описание конкретных файловых систем: [Глава 36 (UNIX/Linux)](36-unix-fs.md), [Глава 37 (Windows)](37-windows-fs.md), [Глава 38 (BSD)](38-bsd-fs.md), [Глава 39 (Linux-специфичные)](39-linux-fs.md), [Глава 40 (ZFS)](40-zfs.md), [Глава 41 (Btrfs)](41-btrfs.md).
 
-### Что это?
-
-**Файловая система** — это способ организации и хранения данных на разделе (или блочном устройстве). Она определяет:
-
-- Как хранятся **файлы и директории** (структуры данных, деревья)
-- Как хранятся **метаданные** (размер, права, даты, владелец)
-- Как организован **поиск файлов** (индексы, B-trees)
-- Как обеспечивается **целостность данных** (журнал, checksums)
-- **Ограничения**: максимальный размер файла, длина имени, количество файлов
+**Файловая система** — способ организации и хранения данных на разделе. Она определяет: как хранятся файлы и метаданные, как обеспечивается целостность, какие существуют ограничения.
 
 ### Компоненты файловой системы
 
@@ -888,91 +709,49 @@ Disk 0
 ┌─────────────────────────────────────────────────────────────┐
 │  АНАТОМИЯ ФАЙЛОВОЙ СИСТЕМЫ                                  │
 ├─────────────────────────────────────────────────────────────┤
-│                                                             │
 │  ┌─────────────┐  Информация о ФС: размер блока, UUID,      │
 │  │ Superblock  │  количество inodes, свободное место        │
 │  └─────────────┘                                            │
-│                                                             │
 │  ┌─────────────┐  Какие блоки заняты, какие свободны        │
 │  │ Block Bitmap│  (битовая карта или B-tree)                │
 │  └─────────────┘                                            │
-│                                                             │
 │  ┌─────────────┐  Метаданные файлов: права, размер,         │
 │  │ Inode Table │  указатели на блоки данных                 │
 │  └─────────────┘                                            │
-│                                                             │
 │  ┌─────────────┐  Связь имя → inode                         │
 │  │ Directories │  (таблицы или B-tree)                      │
 │  └─────────────┘                                            │
-│                                                             │
 │  ┌─────────────┐  Защита от сбоев: pending операции         │
 │  │ Journal     │                                            │
 │  └─────────────┘                                            │
-│                                                             │
 │  ┌─────────────┐  Собственно содержимое файлов              │
 │  │ Data Blocks │                                            │
 │  └─────────────┘                                            │
-│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Почему выбор файловой системы важен?
-
-Параметры ФС влияют на:
-
-| Параметр | Что определяет | Примеры |
-|----------|---------------|---------|
-| **Размер блока** | Минимальная единица хранения. Большой блок = быстрее для больших файлов, но больше waste для мелких | 1 КБ, 4 КБ, 64 КБ |
-| **Структура индексов** | Скорость поиска файлов в директориях | Линейный список, Hash, B-tree |
-| **Максимальный размер файла** | Ограничение на размер одного файла | FAT32: 4 ГБ, ext4: 16 ТБ, XFS: 8 EB |
-| **Максимальный размер ФС** | Ограничение на размер раздела | FAT32: 2 ТБ, ext4: 1 EB, XFS: 8 EB |
-| **Количество файлов** | Лимит на общее число файлов (inode limit) | ext4: задаётся при создании |
-
-!!! tip "Пример: много мелких файлов"
-    При миллионах мелких файлов (node_modules, maildir):
-    
-    - **ext4**: может кончиться inode при создании ФС с дефолтными параметрами
-    - **XFS/Btrfs**: динамическое выделение inode, проблем нет
-    - **B-tree директории**: быстрый поиск vs линейный O(n) в старых ФС
-
 ### Основные файловые системы
 
-#### Linux / BSD
+| ФС | ОС | Ключевые особенности |
+|----|-----|---------------------|
+| **ext4** | Linux | Стандарт Linux, журнал, до 16 ТБ/файл |
+| **XFS** | Linux | Большие файлы, параллельный I/O |
+| **Btrfs** | Linux | CoW, снапшоты, сжатие, RAID |
+| **ZFS** | FreeBSD, Linux | Объединяет тома и ФС, checksums, RAID-Z |
+| **UFS2/FFS** | FreeBSD, OpenBSD | Native BSD, soft updates |
+| **NTFS** | Windows | Журнал, ACL, сжатие, шифрование |
+| **APFS** | macOS | CoW, шифрование, space sharing |
+| **F2FS** | Linux | Оптимизирована для Flash/SSD |
 
-| ФС | Описание | Особенности | Ограничения |
-|----|----------|-------------|-------------|
-| **ext4** | Extended FS 4 | Стандарт Linux, журнал, надёжность | Макс файл 16 ТБ, ФС 1 EB |
-| **XFS** | SGI, high-performance | Большие файлы, параллельный I/O | Нельзя уменьшить, только расширить |
-| **Btrfs** | B-tree FS | CoW, снапшоты, сжатие, RAID | Менее зрелый чем ext4/XFS |
-| **ZFS** | Sun/Oracle → OpenZFS | Интеграция с томами, checksums, RAID-Z | Требует RAM, лицензия (не в Linux kernel) |
-| **F2FS** | Samsung | Оптимизирована для Flash/SSD | Для embedded, мобильных |
-| **UFS/FFS** | BSD стандарт | FreeBSD/OpenBSD native | Soft updates или журнал |
+### Три ключевых концепции
 
-#### Windows
+**Журналирование** — запись намерений перед изменением данных. При сбое система откатывает незавершённые операции. Используется в ext4, XFS, NTFS.
 
-| ФС | Описание | Особенности |
-|----|----------|-------------|
-| **NTFS** | New Technology FS | Журнал, ACL, сжатие, шифрование, hard/soft links |
-| **ReFS** | Resilient FS | Для серверов, checksums, self-healing |
-| **FAT32** | File Allocation Table | Совместимость со всеми ОС, макс файл 4 ГБ |
-| **exFAT** | Extended FAT | Для флешек, без ограничения 4 ГБ |
+**Copy-on-Write (CoW)** — при изменении файла создаётся новая копия блока, старая остаётся нетронутой. Это даёт мгновенные снапшоты и защиту от повреждений. Используется в Btrfs, ZFS, APFS.
 
-#### macOS
+**Снапшоты** — моментальный снимок состояния ФС. Благодаря CoW снапшот занимает ~0 места (пока данные не изменятся). Незаменимы для бэкапов и отката обновлений.
 
-| ФС | Описание | Особенности |
-|----|----------|-------------|
-| **APFS** | Apple FS (2017+) | CoW, шифрование, снапшоты, space sharing |
-| **HFS+** | Hierarchical FS Plus | Устаревшая (до macOS 10.13) |
-
-#### BSD-специфичные
-
-| ФС | Описание | ОС |
-|----|----------|-----|
-| **UFS2** | Unix File System 2 | FreeBSD (default), OpenBSD |
-| **FFS** | Fast File System | OpenBSD (вариант UFS) |
-| **Hammer2** | Modern CoW FS | DragonFly BSD |
-
-### Скорость vs Отказоустойчивость: уровни решений
+### Скорость vs Отказоустойчивость
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -980,408 +759,68 @@ Disk 0
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
 │  Уровень 1: АППАРАТНЫЙ RAID                                 │
-│  ────────────────────────────                               │
 │  • RAID-контроллер с батарейкой (BBU)                       │
-│  • RAID 1, 5, 6, 10                                         │
-│  • Прозрачно для ОС                                         │
-│  • Дорого, надёжно, быстро                                  │
+│  • Прозрачно для ОС, дорого, надёжно                        │
 │                                                             │
-│  Уровень 2: ПРОГРАММНЫЙ RAID (mdadm, LVM)                   │
-│  ─────────────────────────────────────────                  │
-│  • Linux: mdadm, LVM                                        │
-│  • FreeBSD: graid, gmirror, gstripe                         │
+│  Уровень 2: ПРОГРАММНЫЙ RAID (mdadm → Глава 42, LVM → 43) │
 │  • Дёшево, гибко, требует CPU                               │
 │                                                             │
-│  Уровень 3: ФАЙЛОВАЯ СИСТЕМА                                │
-│  ───────────────────────────────                            │
-│  • ZFS, Btrfs: встроенный RAID (RAID-Z, Btrfs RAID)         │
-│  • Checksums на уровне ФС (защита от bit rot)               │
-│  • Снапшоты, дедупликация                                   │
+│  Уровень 3: ФАЙЛОВАЯ СИСТЕМА (ZFS → Глава 40, Btrfs → 41) │
+│  • Встроенный RAID, checksums, снапшоты                     │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### ZFS: файловая система нового поколения
-
-ZFS заслуживает отдельного упоминания как пример интегрированного подхода:
-
-```bash
-# Создание пула из дисков с RAID-Z (аналог RAID-5)
-$ zpool create tank raidz sda sdb sdc
-
-# Создание файловой системы
-$ zfs create tank/home
-$ zfs create tank/data
-
-# Снапшоты
-$ zfs snapshot tank/home@backup-2024-02-06
-$ zfs rollback tank/home@backup-2024-02-06
-
-# Сжатие и дедупликация
-$ zfs set compression=lz4 tank/data
-$ zfs set dedup=on tank/backup
-
-# Отправка снапшота на другой сервер
-$ zfs send tank/home@backup | ssh server zfs recv backup/home
-```
-
-**Ключевые концепции ZFS:**
-
-| Концепция | Описание |
-|-----------|----------|
-| **Storage Pool** | Объединение дисков в единый пул |
-| **RAID-Z1/Z2/Z3** | Аналог RAID-5/6 с 1/2/3 дисками чётности |
-| **Copy-on-Write** | Атомарность операций, нет fsck |
-| **Checksums** | Проверка целостности каждого блока |
-| **Self-healing** | Автоматическое восстановление из зеркала |
-| **ARC** | Adaptive Replacement Cache (требует RAM) |
-
-!!! info "ZFS vs Btrfs"
-    **ZFS**: более зрелый, портирован из Solaris, не в mainline Linux (лицензия CDDL), требует много RAM.
-    
-    **Btrfs**: нативный Linux, в mainline kernel, менее зрелый RAID-5/6, меньше требований к RAM.
-
-### Создание файловой системы
-
-#### Linux:
-
-```bash
-# Создать ext4 на разделе /dev/sda2
-$ sudo mkfs.ext4 /dev/sda2
-mke2fs 1.46.5 (30-Dec-2021)
-Creating filesystem with 62383441 4k blocks and 15597568 inodes
-Filesystem UUID: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-Superblock backups stored on blocks: 
-	32768, 98304, 163840, 229376, 294912
-
-# Создать XFS
-$ sudo mkfs.xfs /dev/sda3
-
-# Создать Btrfs
-$ sudo mkfs.btrfs /dev/sda4
-```
-
-#### Windows:
-
-```powershell
-# Форматировать диск C: в NTFS
-PS> Format-Volume -DriveLetter C -FileSystem NTFS -NewFileSystemLabel "Windows"
-
-# Форматировать в exFAT
-PS> Format-Volume -DriveLetter D -FileSystem exFAT
-```
-
-### Ключевые концепции файловых систем
-
-#### 1. Журналирование (Journaling)
-
-Журналирование защищает от потери данных при сбоях:
-
-```
-1. Запись в журнал: "Собираюсь записать файл X"
-2. Запись данных файла X
-3. Запись в журнал: "Файл X записан успешно"
-```
-
-При сбое на шаге 2 система при загрузке откатит изменения.
-
-**Файловые системы с журналированием:** ext4, XFS, NTFS, APFS
-
-#### 2. Copy-on-Write (CoW)
-
-При изменении файла создаётся новая копия блока, старая остаётся:
-
-```
-Было:          Стало:
-Block 1 ──→    Block 1 (старая версия)
-               Block 2 (новая версия) ──→ файл указывает сюда
-```
-
-**Преимущества:**
-- Мгновенные снапшоты
-- Защита от повреждений
-- Дедупликация данных
-
-**Файловые системы с CoW:** Btrfs, ZFS, APFS
-
-#### 3. Снапшоты (Snapshots)
-
-Моментальный снимок состояния файловой системы:
-
-```bash
-# Btrfs: создать снапшот
-$ sudo btrfs subvolume snapshot / /snapshots/root-2024-02-04
-
-# ZFS: создать снапшот
-$ sudo zfs snapshot tank/home@2024-02-04
-
-# APFS (macOS): Time Machine использует снапшоты
-$ tmutil listlocalsnapshots /
-com.apple.TimeMachine.2024-02-04-120000.local
-```
-
 ## Уровень 4: VFS (Virtual File System)
 
-### Что это?
+!!! info "Подробнее"
+    VFS, монтирование, bind mounts, FUSE — в [Главе 36. Классические ФС UNIX](36-unix-fs.md).
 
-**VFS** — это слой абстракции в ядре ОС, который предоставляет **единый интерфейс** для работы с разными файловыми системами.
-
-### Зачем нужен VFS?
-
-Без VFS каждая программа должна была бы знать, как работать с ext4, NTFS, FAT32 и т.д. VFS скрывает эти детали:
+**VFS** — слой абстракции в ядре, предоставляющий **единый интерфейс** (`open`, `read`, `write`, `close`) для работы с любыми файловыми системами.
 
 ```mermaid
 graph TB
-    App["Приложение: cat /home/user/file.txt"]
+    App["Приложение: open('/home/user/file.txt')"]
     VFS["VFS: единый интерфейс"]
-    ext4["ext4 driver"]
-    ntfs["NTFS driver"]
-    nfs["NFS driver"]
+    ext4["ext4"]
+    ntfs["NTFS"]
+    nfs["NFS"]
+    fuse["FUSE → sshfs, rclone"]
     
     App --> VFS
     VFS --> ext4
     VFS --> ntfs
     VFS --> nfs
-    
-    ext4 --> disk1["/dev/sda2"]
-    ntfs --> disk2["/dev/sdb1"]
-    nfs --> network["Сетевой диск"]
+    VFS --> fuse
 ```
 
-### Монтирование (Mounting)
+Благодаря VFS:
 
-**Монтирование** — это процесс подключения файловой системы к дереву директорий.
+- Одна команда `cp` копирует файлы между ext4, NTFS и NFS
+- **Монтирование** подключает ФС к любой точке дерева каталогов (`mount /dev/sdb1 /mnt`)
+- **Bind mounts** делают одну директорию доступной по двум путям (основа Docker volumes)
+- **FUSE** позволяет писать ФС как обычные программы (sshfs, rclone mount, encfs)
 
-#### Linux: точки монтирования
+## Уровень 5: Directory Tree (дерево каталогов)
 
-```bash
-# Просмотр смонтированных ФС
-$ mount | grep ^/dev
-/dev/sda2 on / type ext4 (rw,relatime)
-/dev/sda1 on /boot/efi type vfat (rw,relatime)
-/dev/sdb1 on /mnt/data type ntfs (rw,relatime)
+!!! info "Подробнее"
+    Стандартная иерархия каталогов Unix (FHS) — в [Главе 36](36-unix-fs.md). Специфика BSD — в [Главе 38](38-bsd-fs.md).
 
-# Монтировать раздел
-$ sudo mount /dev/sdb1 /mnt/usb
-
-# Размонтировать
-$ sudo umount /mnt/usb
-
-# Автоматическое монтирование при загрузке: /etc/fstab
-$ cat /etc/fstab
-UUID=a1b2c3d4-... / ext4 defaults 0 1
-UUID=e5f6g7h8-... /boot/efi vfat defaults 0 2
-UUID=i9j0k1l2-... /home ext4 defaults 0 2
-```
-
-#### Windows: буквы дисков
-
-В Windows каждый раздел получает **букву диска**:
-
-```powershell
-# Список дисков
-PS> Get-PSDrive -PSProvider FileSystem
-
-Name           Used (GB)     Free (GB) Provider      Root
-----           ---------     --------- --------      ----
-C                 187.73         50.23 FileSystem    C:\
-D                  50.00        150.00 FileSystem    D:\
-
-# Назначить букву диска
-PS> Set-Partition -DiskNumber 1 -PartitionNumber 2 -NewDriveLetter E
-```
-
-!!! note "Философское различие"
-    **Unix/Linux:** Единое дерево директорий, начинающееся с `/`. Все диски монтируются в это дерево.
-    
-    **Windows:** Каждый диск — отдельное дерево с буквой (`C:\`, `D:\`, etc.)
-
-### Bind Mounts: директория в двух местах
-
-**Bind mount** позволяет "примонтировать" директорию в другое место дерева. Это НЕ symlink и НЕ копия — это та же самая директория, доступная по двум путям.
-
-```bash
-# Монтируем /home/user/project в /var/www/html
-$ sudo mount --bind /home/user/project /var/www/html
-
-# Теперь /var/www/html показывает содержимое /home/user/project
-$ ls /var/www/html
-index.html  style.css  # То же, что в /home/user/project
-
-# Изменения видны в обоих местах
-$ touch /home/user/project/new_file.txt
-$ ls /var/www/html/new_file.txt
-new_file.txt  # Появился!
-```
-
-**Отличия от symlink:**
-
-| Аспект | Bind Mount | Symlink |
-|--------|-----------|--------|
-| Уровень | Ядро (VFS) | Файловая система |
-| Виден в `ls -l` | Нет | Да (`l` тип) |
-| Переживает reboot | Нет (без fstab) | Да |
-| Chroot/container | Работает | Может сломаться |
-
-**Применение:**
-- Docker volumes
-- chroot окружения
-- Разработка (код в home, сервер в /var/www)
-
-### FUSE: файловые системы в userspace
-
-**FUSE** (Filesystem in Userspace) — механизм, позволяющий создавать файловые системы без написания кода ядра.
-
-```mermaid
-graph TB
-    App["Приложение: ls /mnt/gdrive"]
-    VFS["VFS"]
-    FUSE_kernel["FUSE (kernel module)"]
-    FUSE_daemon["FUSE daemon (userspace)"]
-    Cloud["Google Drive API"]
-    
-    App --> VFS
-    VFS --> FUSE_kernel
-    FUSE_kernel <--> FUSE_daemon
-    FUSE_daemon <--> Cloud
-```
-
-**Примеры FUSE файловых систем:**
-
-| ФС | Назначение |
-|----|-----------|
-| **sshfs** | Монтирование удалённых директорий через SSH |
-| **rclone mount** | Облачные хранилища (Google Drive, S3, Dropbox) |
-| **encfs, gocryptfs** | Шифрование директорий |
-| **ntfs-3g** | Чтение/запись NTFS в Linux |
-| **s3fs** | Amazon S3 как файловая система |
-| **curlftpfs** | FTP как файловая система |
-
-```bash
-# Примеры использования FUSE
-
-# SSH как файловая система
-$ sshfs user@server:/home/user /mnt/remote
-$ ls /mnt/remote  # Файлы с удалённого сервера
-$ fusermount -u /mnt/remote  # Размонтировать
-
-# Google Drive
-$ rclone mount gdrive: /mnt/gdrive --daemon
-
-# Зашифрованная директория
-$ gocryptfs ~/.encrypted ~/private
-```
-
-!!! tip "Когда использовать FUSE"
-    - Доступ к облачным хранилищам как к локальным папкам
-    - Прототипирование новых ФС (проще чем kernel module)
-    - Кроссплатформенность (Linux, macOS, FreeBSD)
-
-## Уровень 5: Directory Tree (дерево директорий)
-
-### Что это?
-
-**Дерево директорий** — это иерархическая структура, которую видит пользователь.
-
-### Unix/Linux: единое дерево
-
-```
-/                          (корень)
-├── bin/                   (исполняемые файлы)
-├── boot/                  (загрузчик и ядро)
-├── dev/                   (устройства)
-├── etc/                   (конфигурационные файлы)
-├── home/                  (домашние директории)
-│   ├── alice/
-│   └── bob/
-├── mnt/                   (точки монтирования)
-├── proc/                  (псевдофайловая система)
-├── root/                  (домашняя директория root)
-├── sys/                   (псевдофайловая система)
-├── tmp/                   (временные файлы)
-├── usr/                   (пользовательские программы)
-│   ├── bin/
-│   ├── lib/
-│   └── share/
-└── var/                   (изменяемые данные)
-    ├── log/
-    └── tmp/
-```
-
-### FreeBSD: похожая структура с отличиями
+**Дерево каталогов** — это иерархическая структура, которую видит пользователь. В Unix всё начинается с единого корня `/`:
 
 ```
 /                          (корень)
 ├── bin/                   (базовые утилиты)
-├── boot/                  (загрузчик, kernel)
-│   └── kernel/            (модули ядра)
-├── etc/                   (системные конфиги)
-├── home/ или /usr/home/   (домашние директории)
-├── rescue/                (статически слинкованные утилиты для recovery)
-├── root/                  (домашняя root)
-├── tmp/                   (временные файлы)
-├── usr/                   
-│   ├── bin/               (пользовательские утилиты)
-│   ├── local/             (порты и пакеты)
-│   │   ├── bin/
-│   │   └── etc/
-│   ├── ports/             (дерево портов)
-│   └── src/               (исходники системы)
-└── var/
-    ├── db/pkg/            (база пакетов)
-    └── log/
-```
-
-### OpenBSD: минималистичная структура
-
-```
-/                          (корень)
-├── bin/                   (базовые утилиты)
-├── bsd                    (ядро)
-├── bsd.mp                 (SMP ядро)
-├── bsd.rd                 (ramdisk ядро для установки)
-├── dev/                   (устройства)
 ├── etc/                   (конфигурация)
-├── home/                  (домашние директории)
-├── root/                  (домашняя root)
-├── sbin/                  (системные утилиты)
-├── tmp/                   (временные, очищается при загрузке)
-├── usr/
-│   ├── bin/
-│   ├── local/             (пакеты из портов)
-│   ├── ports/             (дерево портов)
-│   ├── share/
-│   ├── src/               (исходники базовой системы)
-│   └── xenocara/          (исходники X.org)
-└── var/
-    ├── log/
-    └── www/               (DocumentRoot для httpd)
+├── home/                  (домашние каталоги)
+├── dev/                   (устройства)
+├── proc/, sys/            (псевдо-ФС: ядро и процессы)
+├── tmp/                   (временные файлы)
+├── usr/                   (программы и библиотеки)
+└── var/                   (логи, кэш, изменяемые данные)
 ```
 
-!!! note "Философские различия BSD"
-    - **Базовая система отделена от пакетов**: `/usr/bin` (система) vs `/usr/local/bin` (пакеты)
-    - **Исходники в дереве**: `/usr/src` — исходники ОС, можно пересобрать систему
-    - **Порты**: `/usr/ports` — система сборки из исходников
-
-### Windows: множество деревьев
-
-```
-C:\                        (системный диск)
-├── Program Files\
-├── Program Files (x86)\
-├── Users\
-│   ├── Alice\
-│   └── Bob\
-├── Windows\
-│   ├── System32\
-│   └── SysWOW64\
-└── ProgramData\
-
-D:\                        (диск с данными)
-├── Documents\
-├── Photos\
-└── Videos\
-```
+В Windows — множество независимых деревьев (`C:\`, `D:\`, ...), каждое привязано к разделу.
 
 ## Собираем всё вместе
 
@@ -1419,91 +858,32 @@ graph TB
 
 ## Практические команды
 
-### Linux: просмотр информации о файловых системах
+## Практические команды
+
+Быстрая шпаргалка по командам для работы с уровнями архитектуры:
 
 ```bash
-# Использование дискового пространства
-$ df -h
-Filesystem      Size  Used Avail Use% Mounted on
-/dev/sda2       234G  180G   42G  82% /
-/dev/sda1       511M  5.3M  506M   2% /boot/efi
+# === Block Devices ===
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT,MODEL   # Дерево дисков
+blkid                                               # UUID и типы ФС
+hdparm -Tt /dev/sda                                 # Быстрый тест скорости
+smartctl -a /dev/sda                                # S.M.A.R.T. диагностика
 
-# Детальная информация о ФС
-$ sudo dumpe2fs /dev/sda2 | head -20
-Filesystem volume name:   <none>
-Filesystem UUID:          a1b2c3d4-e5f6-7890-abcd-ef1234567890
-Filesystem magic number:  0xEF53
-Filesystem features:      has_journal ext_attr resize_inode dir_index
+# === Partitions ===
+fdisk -l /dev/sda                                   # Просмотр разделов
+parted /dev/sda print                               # Подробнее о разделах
 
-# Проверка файловой системы (только на размонтированной!)
-$ sudo fsck /dev/sda2
-
-# S.M.A.R.T. диагностика диска
-$ sudo smartctl -a /dev/sda
+# === Filesystems ===
+df -h                                               # Использование дискового пространства
+mount | grep ^/dev                                  # Смонтированные ФС
+dumpe2fs /dev/sda2 | head -20                       # Информация о ext4
+fsck /dev/sda2                                      # Проверка ФС (⚠️ только unmounted!)
 ```
 
-### FreeBSD
-
-```bash
-# Использование дискового пространства
-$ df -h
-Filesystem      Size  Used  Avail Capacity  Mounted on
-/dev/ada0p2     228G  180G    30G    86%    /
-devfs           1.0K  1.0K     0B   100%    /dev
-
-# Информация о разделах
-$ gpart show
-=>       40  500118192  ada0  GPT  (238G)
-         40     532480     1  efi  (260M)
-     532520  499585672     2  freebsd-ufs  (238G)
-
-# Информация о UFS
-$ dumpfs /dev/ada0p2 | head -20
-
-# Проверка ФС
-$ fsck_ufs /dev/ada0p2
-
-# ZFS (если используется)
-$ zpool status
-$ zfs list
-```
-
-### OpenBSD
-
-```bash
-# Использование дискового пространства
-$ df -h
-Filesystem     Size    Used   Avail Capacity  Mounted on
-/dev/sd0a      3.9G    1.8G    1.9G    49%    /
-/dev/sd0d       49G     25G     22G    54%    /usr
-/dev/sd0e      147G     80G     60G    57%    /home
-
-# Информация о разделах (disklabel)
-$ disklabel sd0
-
-# Проверка ФС
-$ fsck_ffs /dev/sd0a
-
-# Информация о диске
-$ sysctl hw.disknames
-$ sysctl hw.diskcount
-```
-
-### Windows
-
-```powershell
-# Информация о томах
-PS> Get-Volume
-DriveLetter FileSystemLabel FileSystem DriveType HealthStatus SizeRemaining     Size
------------ --------------- ---------- --------- ------------ -------------     ----
-C           Windows         NTFS       Fixed     Healthy           50.23 GB 237.96 GB
-
-# Проверка диска
-PS> Repair-Volume -DriveLetter C -Scan
-
-# chkdsk (из cmd)
-> chkdsk C: /F
-```
+!!! tip "Команды для других ОС"
+    - **FreeBSD**: `gpart show`, `zpool status`, `fsck_ufs`
+    - **OpenBSD**: `disklabel sd0`, `fsck_ffs`, `sysctl hw.disknames`
+    - **Windows**: `Get-Volume`, `Get-Partition`, `Repair-Volume -DriveLetter C -Scan`
 
 ---
 
