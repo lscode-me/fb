@@ -618,6 +618,251 @@ $ rmdir huge_directory
 
 ---
 
+## 5.9 Блокировки файлов (File Locking)
+
+Когда несколько процессов работают с одним файлом одновременно, возникает проблема гонок (race condition). Блокировки файлов решают эту проблему.
+
+### Advisory vs Mandatory Locking
+
+| Тип | Описание | Поведение |
+|-----|----------|-----------|
+| **Advisory** (рекомендательная) | Процесс *просит* блокировку, но ОС не принуждает | Другие процессы могут игнорировать — работает, только если все участники «договорились» |
+| **Mandatory** (обязательная) | ОС принудительно блокирует доступ | Устарело в Linux (удалено в 5.15), используется в Windows |
+
+### flock — блокировка на уровне файла
+
+```bash
+# Эксклюзивная блокировка (только один процесс)
+flock /tmp/myapp.lock my_script.sh
+
+# Shared (несколько читателей, но нет писателей)
+flock -s /tmp/myapp.lock cat data.txt
+
+# Non-blocking (не ждать, выйти с ошибкой)
+flock -n /tmp/myapp.lock my_script.sh || echo "Уже запущен!"
+```
+
+### fcntl — блокировка диапазона байтов
+
+```python
+import fcntl, struct, os
+
+fd = os.open("data.db", os.O_RDWR)
+
+# Блокировка первых 100 байт (POSIX record locking)
+lockdata = struct.pack('hhllhh', fcntl.F_WRLCK, 0, 0, 100, 0, 0)
+fcntl.fcntl(fd, fcntl.F_SETLK, lockdata)
+
+# ... работа с файлом ...
+
+# Снятие блокировки
+lockdata = struct.pack('hhllhh', fcntl.F_UNLCK, 0, 0, 100, 0, 0)
+fcntl.fcntl(fd, fcntl.F_SETLK, lockdata)
+```
+
+### Python-идиоматичный способ
+
+```python
+import fcntl
+
+with open("data.txt", "r") as f:
+    fcntl.flock(f, fcntl.LOCK_EX)  # Эксклюзивная блокировка
+    data = f.read()
+    fcntl.flock(f, fcntl.LOCK_UN)  # Снять блокировку
+```
+
+!!! warning "Почему базы данных не любят NFS"
+    NFS v3 не поддерживает надёжные блокировки — `flock` просто игнорируется. NFS v4 добавил блокировки, но они ненадёжны при сетевых сбоях. Вот почему SQLite, PostgreSQL и другие БД **не рекомендуют** размещать файлы данных на NFS.
+
+---
+
+## 5.10 Наблюдение за изменениями (Filesystem Events)
+
+Как программы узнают, что файл изменился, **не опрашивая его в цикле**? Операционные системы предоставляют механизмы уведомлений:
+
+| Механизм | ОС | Уровень | Ограничения |
+|----------|------|---------|-------------|
+| **inotify** | Linux | Ядро | Не рекурсивен (по одному watch на директорию), лимит `/proc/sys/fs/inotify/max_user_watches` |
+| **fanotify** | Linux | Ядро | Более мощный, может фильтровать по mount point |
+| **FSEvents** | macOS | Framework | Рекурсивен, но с задержкой (~1 с). Используется Spotlight, Time Machine |
+| **ReadDirectoryChangesW** | Windows | WinAPI | Рекурсивен. Может пропускать события при высокой нагрузке |
+| **kqueue** | BSD/macOS | Ядро | Один watch на дескриптор, не рекурсивен |
+
+### Пример: inotify на Linux
+
+```bash
+# Наблюдение за директорией
+inotifywait -m -r /var/log/ -e modify,create,delete
+```
+
+### Python: библиотека watchdog
+
+```python
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time
+
+class MyHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        print(f"Изменён: {event.src_path}")
+    
+    def on_created(self, event):
+        print(f"Создан: {event.src_path}")
+    
+    def on_deleted(self, event):
+        print(f"Удалён: {event.src_path}")
+
+observer = Observer()
+observer.schedule(MyHandler(), path=".", recursive=True)
+observer.start()
+
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    observer.stop()
+observer.join()
+```
+
+!!! tip "Где это используется"
+    - **Сборщики** (webpack, vite) — пересборка при изменении исходников
+    - **Синхронизация** (Dropbox, Syncthing) — обнаружение локальных изменений
+    - **IDE** — обновление дерева файлов, автоперезагрузка
+    - **Логирование** (tail -f) — слежение за новыми записями
+
+---
+
+## 5.11 Атомарность файловых операций
+
+При записи файла многие программисты делают:
+
+```python
+with open("config.json", "w") as f:
+    json.dump(data, f)
+```
+
+Что произойдёт, если процесс **упадёт** посреди записи? Файл будет **повреждён** — частично записанным. Это не теория: сбои питания, `kill -9`, нехватка места — всё это реальность.
+
+### Паттерн «write to temp + rename»
+
+**Безопасный** способ записи:
+
+```python
+import os, tempfile, json
+
+def safe_write(path, data):
+    dir_name = os.path.dirname(path) or '.'
+    
+    # 1. Пишем во временный файл в той же директории
+    fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix='.tmp')
+    try:
+        with os.fdopen(fd, 'w') as f:
+            json.dump(data, f)
+            f.flush()
+            os.fsync(f.fileno())  # 2. Гарантируем запись на диск
+        
+        os.rename(tmp_path, path)  # 3. Атомарная замена
+    except:
+        os.unlink(tmp_path)  # Очистка при ошибке
+        raise
+```
+
+### Почему это работает
+
+| Операция | Атомарна? | Пояснение |
+|----------|-----------|-----------|
+| `rename()` (в пределах одной ФС) | ✅ Да | Просто замена записи в директории. Даже при сбое — либо старый, либо новый файл |
+| `write()` | ❌ Нет | Может записать часть данных |
+| `open("w")` | ❌ Нет | Файл усечён **до** записи — при сбое получим пустой файл |
+| `rename()` между ФС | ❌ Нет | Это copy + delete, а не настоящий rename |
+
+### fsync — гарантия записи на диск
+
+Без `fsync()` данные могут находиться только в **кэше ОС** — при сбое питания они будут потеряны:
+
+```python
+f.write(data)
+f.flush()           # Из буфера Python → в буфер ядра
+os.fsync(f.fileno())  # Из буфера ядра → на физический диск
+```
+
+!!! warning "fsync на директорию"
+    После `rename()` на Linux нужно также вызвать `fsync()` на **родительскую директорию**, чтобы гарантировать, что запись в директории сохранена:
+    
+    ```python
+    dir_fd = os.open(dir_name, os.O_RDONLY)
+    os.fsync(dir_fd)
+    os.close(dir_fd)
+    ```
+
+---
+
+## 5.12 Временные файлы
+
+Временные файлы нужны постоянно: промежуточные результаты, загрузки, кэши, безопасная запись (паттерн выше).
+
+### Где живут временные файлы
+
+| Путь | ОС | Очищается | Назначение |
+|------|-----|-----------|------------|
+| `/tmp` | Linux/macOS | При перезагрузке (часто tmpfs) | Короткоживущие файлы |
+| `/var/tmp` | Linux | **Не** очищается автоматически | Файлы, нужные между перезагрузками |
+| `$TMPDIR` | macOS | При перезагрузке | Пользовательский tmp (per-session) |
+| `%TEMP%` / `%TMP%` | Windows | Не очищается | `C:\Users\<user>\AppData\Local\Temp` |
+
+### Python: модуль tempfile
+
+```python
+import tempfile
+
+# Временный файл — автоудаление при закрытии
+with tempfile.NamedTemporaryFile(suffix='.json', delete=True) as f:
+    f.write(b'{"key": "value"}')
+    print(f.name)  # /tmp/tmp8a3kx2f1.json
+    # Файл удалится при выходе из with
+
+# Временная директория
+with tempfile.TemporaryDirectory() as tmpdir:
+    print(tmpdir)  # /tmp/tmpz9ck42a1
+    # Вся директория удалится при выходе из with
+
+# Просто получить безопасное имя файла (низкоуровневый API)
+fd, path = tempfile.mkstemp(suffix='.dat')
+os.write(fd, b"data")
+os.close(fd)
+os.unlink(path)  # Не забудьте удалить!
+```
+
+### Shell: mktemp
+
+```bash
+# Создать временный файл
+TMPFILE=$(mktemp)
+echo "data" > "$TMPFILE"
+# ... обработка ...
+rm "$TMPFILE"
+
+# Создать временную директорию
+TMPDIR=$(mktemp -d)
+```
+
+!!! danger "Безопасность: предсказуемые имена"
+    **Никогда** не создавайте временные файлы с предсказуемыми именами:
+    
+    ```python
+    # ❌ ОПАСНО: race condition (symlink attack)
+    path = "/tmp/myapp_data.txt"
+    open(path, "w").write(secret)
+    
+    # ✅ БЕЗОПАСНО: непредсказуемое имя + атомарное создание
+    fd, path = tempfile.mkstemp()
+    os.write(fd, secret)
+    ```
+    
+    Злоумышленник может заранее создать символическую ссылку `/tmp/myapp_data.txt → /etc/passwd`, и ваша программа перезапишет системный файл.
+
+---
+
 ## Резюме
 
 | Команда | Действие | На уровне ФС |

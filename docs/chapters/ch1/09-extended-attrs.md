@@ -89,6 +89,59 @@ com.apple.ResourceFork        # Resource fork (legacy)
 com.apple.metadata:kMDItemWhereFroms  # Откуда скачан файл
 ```
 
+### SELinux и xattr
+
+На системах с SELinux каждый файл имеет **контекст безопасности**, хранящийся в xattr:
+
+```bash
+# Просмотр SELinux-контекста
+$ ls -Z /etc/passwd
+system_u:object_r:passwd_file_t:s0 /etc/passwd
+#  user  : role   : type           : level
+
+# Это хранится в xattr security.selinux
+$ getfattr -n security.selinux /etc/passwd
+security.selinux="system_u:object_r:passwd_file_t:s0"
+
+# Изменение контекста
+$ chcon -t httpd_sys_content_t /var/www/html/index.html
+
+# Восстановление контекста по политике
+$ restorecon -v /var/www/html/index.html
+```
+
+!!! tip "Почему файл не работает после `cp` на SELinux"
+    `cp` создаёт файл с контекстом директории-назначения. `mv` сохраняет оригинальный контекст. Если веб-сервер не может прочитать файл, скопированный из `~` в `/var/www/` — скорее всего, проблема в SELinux-контексте. Решение: `restorecon -R /var/www/`.
+
+### File Capabilities (Linux)
+
+Вместо запуска программы от root можно дать ей точечные привилегии через capabilities:
+
+```bash
+# Дать программе возможность слушать порты <1024 без root
+$ sudo setcap cap_net_bind_service+ep /usr/local/bin/myserver
+
+# Проверить capabilities файла
+$ getcap /usr/local/bin/myserver
+/usr/local/bin/myserver cap_net_bind_service=ep
+
+# Capabilities хранятся в xattr security.capability
+$ getfattr -n security.capability /usr/local/bin/myserver
+```
+
+### Практические применения xattr
+
+| Применение | Атрибут | ОС |
+|-----------|---------|-----|
+| Карантин скачанных файлов | `com.apple.quarantine` | macOS |
+| URL источника загрузки | `com.apple.metadata:kMDItemWhereFroms` | macOS |
+| URL источника загрузки | `user.xdg.origin.url` | Linux (Chrome) |
+| SELinux-контекст | `security.selinux` | Linux (RHEL, Fedora) |
+| POSIX ACL | `system.posix_acl_access` | Linux |
+| File capabilities | `security.capability` | Linux |
+| Цвет метки Finder | `com.apple.FinderInfo` | macOS |
+| Произвольные метаданные | `user.*` | Linux, macOS, FreeBSD |
+
 !!! info "Браузеры и расширенные атрибуты"
     Браузеры (Safari, Chrome, Firefox) **автоматически ставят** расширенные атрибуты
     на скачанные файлы. На macOS это `com.apple.quarantine` (защита Gatekeeper) и
