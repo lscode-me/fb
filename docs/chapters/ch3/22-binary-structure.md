@@ -176,20 +176,20 @@ $ nm /bin/ls
 ```
 ┌──────────────────────────────────────┐
 │  Mach-O Header                       │
-│  - magic: 0xFEEDFACE (32) /         │
+│  - magic: 0xFEEDFACE (32) /          │
 │           0xFEEDFACF (64)            │
 │  - cputype, cpusubtype               │
 │  - filetype (execute/dylib/bundle)   │
 ├──────────────────────────────────────┤
 │  Load Commands                       │
 │  - LC_SEGMENT_64 (__TEXT, __DATA)    │
-│  - LC_DYLD_INFO, LC_SYMTAB          │
-│  - LC_LOAD_DYLIB (зависимости)      │
+│  - LC_DYLD_INFO, LC_SYMTAB           │
+│  - LC_LOAD_DYLIB (зависимости)       │
 ├──────────────────────────────────────┤
 │  Segments / Sections                 │
 │  - __TEXT: __text, __stubs           │
-│  - __DATA: __data, __bss            │
-│  - __LINKEDIT: символы, подписи     │
+│  - __DATA: __data, __bss             │
+│  - __LINKEDIT: символы, подписи      │
 └──────────────────────────────────────┘
 ```
 
