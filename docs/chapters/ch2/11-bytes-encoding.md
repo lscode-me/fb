@@ -507,6 +507,80 @@ print(socket.ntohs(0x01BB))  # Network to Host Short
 | `>` | Big-endian |
 | `!` | Сетевой (= big-endian) |
 
+### Где порядок байтов критичен
+
+| Формат / Протокол | Порядок байтов | Почему важно знать |
+|-------------------|---------------|-------------------|
+| TCP/IP, HTTP | Big-endian | «Сетевой порядок» — стандарт для всех сетевых протоколов |
+| x86/x64: ELF, PE | Little-endian | Большинство десктопов и серверов |
+| ARM | Bi-endian (чаще LE) | Мобильные устройства, Apple Silicon — LE |
+| Java `.class` | Big-endian | JVM всегда BE, независимо от платформы |
+| TIFF | По BOM (`II`/`MM`) | `II` = Intel = LE, `MM` = Motorola = BE |
+| WAV, BMP | Little-endian | Форматы Microsoft |
+| PNG | Big-endian | Сетевые истоки формата |
+| Protocol Buffers | Little-endian (varint) | Компактные varint'ы |
+| MessagePack | Big-endian | Следует сетевому порядку |
+
+```python
+# Пример: чтение заголовка TIFF
+with open("photo.tiff", "rb") as f:
+    bom = f.read(2)
+    if bom == b"II":
+        endian = "<"  # Little-endian (Intel)
+    elif bom == b"MM":
+        endian = ">"  # Big-endian (Motorola)
+    
+    magic = struct.unpack(f"{endian}H", f.read(2))[0]
+    assert magic == 42  # "Magic number" TIFF
+```
+
+---
+
+## 11.8 Zero-Copy: передача без копирования
+
+При обычной отправке файла по сети данные копируются **4 раза**:
+
+```text
+Обычная передача (read + write/send):
+
+  Диск → [DMA] → Буфер ядра → Буфер user-space → Буфер ядра (socket) → [DMA] → Сеть
+            1              2                  3                      4
+
+Zero-copy (sendfile):
+
+  Диск → [DMA] → Буфер ядра ──────────────────→ [DMA] → Сеть
+            1              (данные НЕ покидают ядро)        2
+```
+
+### Системные вызовы
+
+| Вызов | ОС | Описание |
+|-------|-----|---------|
+| `sendfile()` | Linux, macOS | Передача данных из файлового fd в socket fd без user-space |
+| `splice()` | Linux | Перемещение данных между двумя fd через pipe (ещё гибче) |
+| `TransmitFile()` | Windows | Аналог sendfile для Windows |
+| `copy_file_range()` | Linux 4.5+ | Копирование между файлами без user-space |
+
+### Почему это важно
+
+Веб-серверы (nginx, Apache) используют `sendfile` для статических файлов. Разница:
+
+- **Без zero-copy**: CPU загружен копированием, 4 переключения контекста
+- **С zero-copy**: CPU свободен, 2 переключения контекста, пропускная способность выше на **50-80%**
+
+```python
+import os
+
+# Python: os.sendfile (Linux/macOS)
+with open("large_file.dat", "rb") as src:
+    # Отправка файла в socket без промежуточного буфера
+    # os.sendfile(socket_fd, src.fileno(), offset, count)
+    sent = os.sendfile(sock.fileno(), src.fileno(), 0, os.fstat(src.fileno()).st_size)
+```
+
+!!! info "Связь с mmap"
+    `mmap` (→ Глава 7) — ещё один способ уменьшить копирование: файл проецируется прямо в адресное пространство. Но `mmap` работает в user-space, а `sendfile` — полностью в ядре, поэтому для сетевой передачи `sendfile` эффективнее.
+
 ---
 
 ## Резюме
