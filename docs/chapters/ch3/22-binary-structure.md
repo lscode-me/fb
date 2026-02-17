@@ -173,11 +173,77 @@ $ nm /bin/ls
 
 ### Mach-O — macOS
 
+```
+┌──────────────────────────────────────┐
+│  Mach-O Header                       │
+│  - magic: 0xFEEDFACE (32) /         │
+│           0xFEEDFACF (64)            │
+│  - cputype, cpusubtype               │
+│  - filetype (execute/dylib/bundle)   │
+├──────────────────────────────────────┤
+│  Load Commands                       │
+│  - LC_SEGMENT_64 (__TEXT, __DATA)    │
+│  - LC_DYLD_INFO, LC_SYMTAB          │
+│  - LC_LOAD_DYLIB (зависимости)      │
+├──────────────────────────────────────┤
+│  Segments / Sections                 │
+│  - __TEXT: __text, __stubs           │
+│  - __DATA: __data, __bss            │
+│  - __LINKEDIT: символы, подписи     │
+└──────────────────────────────────────┘
+```
+
 ```bash
 # Информация о Mach-O
-$ otool -h /bin/ls
-$ otool -l /bin/ls  # Load commands
+$ otool -h /bin/ls          # заголовок
+$ otool -l /bin/ls          # load commands
+$ otool -L /bin/ls          # динамические библиотеки
 ```
+
+### Universal Binary (Fat Binary)
+
+На macOS один файл может содержать код сразу для нескольких архитектур (например, `x86_64` + `arm64`). Такой файл называется **Universal Binary** (или Fat Binary):
+
+```
+┌──────────────────────────────────────┐
+│  Fat Header                          │
+│  magic: 0xCAFEBABE                   │
+│  nfat_arch: 2                        │
+├──────────────────────────────────────┤
+│  fat_arch[0]: x86_64                 │
+│  → offset, size, align              │
+├──────────────────────────────────────┤
+│  fat_arch[1]: arm64                  │
+│  → offset, size, align              │
+├══════════════════════════════════════╡
+│  Mach-O (x86_64)                    │
+│  [полноценный бинарник]             │
+├──────────────────────────────────────┤
+│  Mach-O (arm64)                     │
+│  [полноценный бинарник]             │
+└──────────────────────────────────────┘
+```
+
+```bash
+# Проверка архитектур
+$ file /usr/bin/python3
+/usr/bin/python3: Mach-O universal binary with 2 architectures:
+  x86_64, arm64
+
+$ lipo -info /usr/bin/python3
+Architectures in the fat file: x86_64 arm64
+
+# Извлечение одной архитектуры
+$ lipo /usr/bin/python3 -thin arm64 -output python3_arm64
+
+# Создание Universal Binary из двух бинарников
+$ lipo -create app_x86 app_arm -output app_universal
+```
+
+!!! note "Зачем это нужно?"
+    При переходе Apple с Intel на Apple Silicon (2020) Universal Binary позволял
+    распространять один файл, работающий нативно на обеих архитектурах.
+    Rosetta 2 запускает x86_64-код на arm64, но нативный arm64 быстрее.
 
 ---
 
