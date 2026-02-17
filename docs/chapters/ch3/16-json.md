@@ -372,6 +372,117 @@ JSON не имеет типа даты. Каждый проект кодируе
 
 ---
 
+## 16.8 JSON Schema — валидация структуры
+
+JSON Schema описывает **ожидаемую структуру** JSON-документа: типы полей, обязательные свойства, ограничения значений.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["name", "age"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 150
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    }
+  }
+}
+```
+
+### Валидация в Python
+
+```python
+from jsonschema import validate, ValidationError
+
+schema = {
+    "type": "object",
+    "required": ["name", "version"],
+    "properties": {
+        "name": {"type": "string"},
+        "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"}
+    }
+}
+
+# Валидный документ
+validate({"name": "myapp", "version": "1.2.3"}, schema)  # OK
+
+# Невалидный
+try:
+    validate({"name": "myapp", "version": "latest"}, schema)
+except ValidationError as e:
+    print(e.message)  # 'latest' does not match '^\\d+\\.\\d+\\.\\d+$'
+```
+
+!!! tip "Аналогия с XML"
+    JSON Schema для JSON — это то же самое, что **XSD** (XML Schema Definition) для XML. Но JSON Schema проще, читабельнее и не требует отдельного языка описания.
+
+### Где используется
+
+| Применение | Пример |
+|-----------|--------|
+| **API** | OpenAPI/Swagger описывает request/response через JSON Schema |
+| **Конфигурации** | VS Code `settings.json` валидируется по схеме |
+| **CI/CD** | GitHub Actions, GitLab CI — валидация workflow-файлов |
+| **Формы** | Генерация UI-форм из JSON Schema (react-jsonschema-form) |
+
+---
+
+## 16.9 Бинарные альтернативы JSON
+
+Когда JSON слишком медленный или объёмный, существуют бинарные форматы с семантикой JSON:
+
+| Формат | Размер vs JSON | Скорость парсинга | Схема | Особенности |
+|--------|---------------|-------------------|-------|-------------|
+| **MessagePack** | ~50-70% | 2-5× быстрее | Нет | Drop-in замена JSON, поддержка бинарных данных |
+| **CBOR** (RFC 8949) | ~50-70% | 2-5× быстрее | Нет | Стандарт IETF, поддержка тегов (даты, bignum) |
+| **BSON** | ~80-100% | 1.5-2× быстрее | Нет | Формат MongoDB, поддержка дат и ObjectId |
+| **UBJSON** | ~60-80% | 2-3× быстрее | Нет | «Universal Binary JSON» — типизирован |
+
+### MessagePack — самая популярная альтернатива
+
+```python
+import msgpack
+
+data = {"name": "Файл", "size": 1048576, "tags": ["important", "backup"]}
+
+# Сериализация
+packed = msgpack.packb(data)
+print(len(packed))  # ~45 байт (vs ~75 в JSON)
+
+# Десериализация  
+unpacked = msgpack.unpackb(packed)
+print(unpacked)  # {'name': 'Файл', 'size': 1048576, 'tags': ['important', 'backup']}
+```
+
+### Когда переходить на бинарный формат
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Остаться на JSON, если:           Перейти на бинарный, если:│
+│  • Нужна человекочитаемость        • Миллионы сообщений/с   │
+│  • Отладка важнее скорости         • Трафик = деньги (мобил)│
+│  • Совместимость с браузерами      • Есть бинарные данные   │
+│  • Файлы конфигурации              • Внутренний IPC/RPC     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Резюме
 
 | Характеристика | Значение |
