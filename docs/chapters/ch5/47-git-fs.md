@@ -12,6 +12,37 @@ Git — не просто система контроля версий. Под �
 
 Git хранит всё в `.git/objects/` — плоское хранилище, где имя файла = хэш содержимого.
 
+### Схема объектов
+
+```mermaid
+graph TD
+    C1["Commit<br/>a1b2c3d"]
+    C2["Commit (parent)<br/>f7e8d9c"]
+    T1["Tree<br/>4b825dc"]
+    T2["Tree (src/)<br/>1a2b3c4"]
+    B1["Blob<br/>ce01362<br/>README.md"]
+    B2["Blob<br/>d4e5f6a<br/>main.py"]
+    B3["Blob<br/>9f8e7d6<br/>utils.py"]
+    TAG["Tag v1.0<br/>→ Commit"]
+    
+    TAG --> C1
+    C1 -->|tree| T1
+    C1 -->|parent| C2
+    T1 -->|blob README.md| B1
+    T1 -->|blob main.py| B2
+    T1 -->|tree src/| T2
+    T2 -->|blob utils.py| B3
+    
+    style C1 fill:#f9f,stroke:#333
+    style C2 fill:#f9f,stroke:#333
+    style T1 fill:#bbf,stroke:#333
+    style T2 fill:#bbf,stroke:#333
+    style B1 fill:#bfb,stroke:#333
+    style B2 fill:#bfb,stroke:#333
+    style B3 fill:#bfb,stroke:#333
+    style TAG fill:#ff9,stroke:#333
+```
+
 ### Четыре типа объектов
 
 | Объект | Аналог в ФС | Назначение |

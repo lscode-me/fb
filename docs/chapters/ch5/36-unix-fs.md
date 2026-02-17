@@ -264,6 +264,85 @@ sudo e2fsck -b 32768 /dev/sdb1
 
 ---
 
+## 36.8 FUSE — файловые системы в user-space
+
+Обычно файловые системы работают **в ядре** — для написания новой ФС нужно писать kernel-модуль на C. **FUSE** (Filesystem in Userspace) позволяет создавать ФС как обычную программу:
+
+```text
+ls /mnt/myfs/
+     │
+     ▼
+┌──────────────┐
+│   VFS (ядро) │
+└──────┬───────┘
+       ▼
+┌──────────────┐     ┌───────────────────────┐
+│ FUSE (ядро)  │────→│ Ваша программа (user) │
+└──────────────┘     │  Python, Go, Rust...   │
+                     └───────────────────────┘
+```
+
+### Популярные FUSE-файловые системы
+
+| Проект | Что делает | Установка |
+|--------|-----------|-----------|
+| **sshfs** | Монтирует удалённую ФС через SSH | `brew install sshfs` / `apt install sshfs` |
+| **rclone mount** | Монтирует 40+ облачных хранилищ (Google Drive, S3, Dropbox) | `rclone mount gdrive: /mnt/gdrive` |
+| **s3fs-fuse** | Монтирует S3-бакет как директорию | `s3fs bucket /mnt/s3 -o passwd_file=~/.s3cred` |
+| **ntfs-3g** | NTFS на Linux/macOS (через FUSE) | Часто предустановлен |
+| **apfs-fuse** | Чтение APFS на Linux | `apfs-fuse /dev/sda2 /mnt/apfs` |
+| **encfs** | Шифрованная ФС поверх обычной | `encfs ~/.encrypted ~/decrypted` |
+
+```bash
+# sshfs — самое полезное применение FUSE
+sshfs user@server:/data /mnt/server
+ls /mnt/server/  # Файлы с удалённого сервера!
+umount /mnt/server
+
+# rclone — любое облако как директория
+rclone mount google-drive: /mnt/gdrive --daemon
+```
+
+### Python: создание простейшей FUSE-ФС
+
+```python
+# pip install fusepy
+from fuse import FUSE, FuseOSError, Operations
+import errno, stat, time
+
+class HelloFS(Operations):
+    """ФС с одним файлом /hello, содержащим 'Hello, FUSE!'"""
+    
+    def getattr(self, path, fh=None):
+        if path == "/":
+            return dict(st_mode=stat.S_IFDIR | 0o755, st_nlink=2)
+        elif path == "/hello":
+            content = b"Hello, FUSE!\n"
+            return dict(st_mode=stat.S_IFREG | 0o444, 
+                       st_size=len(content), st_nlink=1)
+        raise FuseOSError(errno.ENOENT)
+    
+    def readdir(self, path, fh):
+        return [".", "..", "hello"]
+    
+    def read(self, path, size, offset, fh):
+        if path == "/hello":
+            content = b"Hello, FUSE!\n"
+            return content[offset:offset + size]
+        raise FuseOSError(errno.ENOENT)
+
+# Монтирование: python hello_fs.py /mnt/hello
+FUSE(HelloFS(), "/mnt/hello", foreground=True)
+```
+
+!!! tip "Идеи для FUSE-ФС"
+    - **Wiki-FS**: директории = категории, файлы = статьи из Wikipedia API
+    - **SQL-FS**: `cat /mnt/db/users/123.json` → SELECT из базы данных
+    - **Git-FS**: монтирование любого коммита как read-only директории
+    - **Tar-FS**: `archivemount archive.tar.gz /mnt/archive` — уже существует!
+
+---
+
 ## Резюме
 
 | ФС | Журнал | Max файл | Max ФС | Лучше для |
