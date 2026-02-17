@@ -352,5 +352,54 @@ SELECT * FROM 'old.csv';
     
     **Задание 3.** Конвертируйте CSV в Parquet одной SQL-командой DuckDB: `COPY (SELECT * FROM 'input.csv') TO 'output.parquet' (FORMAT PARQUET)`. Сравните размер.
 
+---
+
+## Troubleshooting: типичные проблемы Части IV
+
+!!! bug "Pipeline зависает (deadlock)"
+    ```bash
+    # Зависает, если fifo никто не читает:
+    echo "data" > my_fifo &
+    # ( и наоборот — cat my_fifo зависнет, если никто не пишет )
+    ```
+    Пайпы имеют ограниченный буфер (~64 KB в Linux). Если читатель не потребляет данные, писатель блокируется. Решение: проверяйте обе стороны пайплайна, используйте `timeout`.
+
+!!! bug "Out of Memory при обработке большого файла"
+    ```python
+    # Неправильно — весь файл в памяти:
+    data = open('10gb.csv').read()
+    
+    # Правильно — построчная обработка:
+    with open('10gb.csv') as f:
+        for line in f:  # итератор, не загружает всё сразу
+            process(line)
+    
+    # Ещё лучше — DuckDB / Polars (ленивые вычисления):
+    import duckdb
+    duckdb.sql("SELECT count(*) FROM '10gb.csv'")
+    ```
+
+!!! bug "grep/sed ведут себя странно с бинарными файлами"
+    ```bash
+    # grep может сказать "Binary file matches":
+    grep -a "pattern" binary_file  # -a = treat as text
+    
+    # Или работайте с hex:
+    xxd binary_file | grep "pattern"
+    ```
+    Coreutils инструменты рассчитаны на текстовые потоки. Для бинарных данных используйте `hexdump`, `xxd`, `binwalk`.
+
+!!! bug "Кодировка в pipe отличается от интерактивного режима"
+    ```bash
+    # В терминале работает, а в pipe — кракозябры:
+    python script.py | less  # PYTHONIOENCODING может быть ASCII в pipe!
+    
+    # Решение:
+    export PYTHONIOENCODING=utf-8
+    # или:
+    python -u script.py | less  # -u = unbuffered
+    ```
+    В pipe Python может выбрать ASCII вместо UTF-8. Задайте `PYTHONIOENCODING=utf-8`.
+
 !!! tip "Следующая глава"
     Завершили практическую часть. Теперь перейдём к **инфраструктуре хранения** — от физических дисков до файловых систем → [Архитектура накопителей](../ch5/34-architecture.md)

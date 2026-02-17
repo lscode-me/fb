@@ -643,5 +643,53 @@ $ ffmpeg -i video.mp4 -i audio.mp3 -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 outp
     
     **Задание 3.** Извлеките EXIF-метаданные из JPEG-фото через Python (`Pillow` или `exifread`). Какие данные там хранятся (GPS, камера, дата)?
 
+---
+
+## Troubleshooting: типичные проблемы Части III
+
+!!! bug "JSON не парсится: trailing comma, комментарии"
+    Стандартный JSON **не поддерживает** комментарии и trailing commas:
+    ```json
+    // ЭТО НЕ ВАЛИДНЫЙ JSON:
+    {
+        "key": "value",
+        "list": [1, 2, 3,]
+    }
+    ```
+    Решения: используйте JSON5, JSONC (VS Code) или YAML вместо JSON. Для валидации: `python -m json.tool file.json`.
+
+!!! bug "YAML: строка превратилась в boolean / число"
+    YAML автоматически интерпретирует значения:
+    ```yaml
+    country: NO      # → boolean False (Norway стала False!)
+    version: 3.10    # → float 3.1 (не строка "3.10"!)
+    password: 'yes'  # → строка "yes" (кавычки спасают)
+    ```
+    **Правило**: всегда оборачивайте неоднозначные значения в кавычки.
+
+!!! bug "CSV: неправильный разделитель / кодировка"
+    ```python
+    import csv
+    
+    # Автоопределение разделителя:
+    with open('file.csv', newline='') as f:
+        dialect = csv.Sniffer().sniff(f.read(4096))
+        f.seek(0)
+        reader = csv.reader(f, dialect)
+    ```
+    Excel на Windows сохраняет CSV в CP1251 с разделителем `;`. Указывайте явно: `encoding='cp1251'`, `delimiter=';'`.
+
+!!! bug "Повреждённый архив: 'unexpected end of file'"
+    ```bash
+    # Проверить целостность:
+    gzip -t file.gz
+    zip -T file.zip
+    tar -tzf file.tar.gz > /dev/null
+    
+    # Попытка частичного извлечения:
+    tar --ignore-zeros -xzf broken.tar.gz
+    ```
+    Причина: обрыв загрузки, битый диск, перезапись файла до окончания записи.
+
 !!! tip "Следующая глава"
     Рассмотрели медиа-данные. Теперь перейдём к **практической работе с файлами** → [Потоки данных](../ch4/26-streams.md)

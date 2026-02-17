@@ -835,5 +835,59 @@ UnicodeEncodeError: 'undefined' codec can't encode characters
     
     **Задание 3.** Создайте файл, содержащий `b'\xff\xfe'` в начале. Откройте его с `encoding='utf-16'`. Что произошло? Это BOM — объясните механизм.
 
+---
+
+## Troubleshooting: типичные проблемы Части II
+
+!!! bug "Кракозябры (mojibake) при чтении файла"
+    Файл читается не в той кодировке, в которой был записан.
+    
+    ```python
+    # Шаг 1: определите реальную кодировку
+    import chardet
+    with open('file', 'rb') as f:
+        result = chardet.detect(f.read())
+    print(result)  # {'encoding': 'Windows-1251', 'confidence': 0.99}
+    
+    # Шаг 2: перекодируйте
+    with open('file', encoding=result['encoding']) as f:
+        text = f.read()
+    ```
+    
+    На уровне терминала: `file --mime-encoding file.txt` покажет предположительную кодировку.
+
+!!! bug "UnicodeDecodeError в Python"
+    ```python
+    # Быстрое исправление — пропустить ошибки:
+    text = data.decode('utf-8', errors='replace')  # замена на �
+    
+    # Лучшее решение — найти правильную кодировку:
+    for enc in ['utf-8', 'cp1251', 'latin-1']:
+        try:
+            text = data.decode(enc)
+            print(f"Сработало: {enc}")
+            break
+        except UnicodeDecodeError:
+            continue
+    ```
+
+!!! bug "BOM (EF BB BF) ломает JSON / shebang / CSV"
+    ```bash
+    # Проверить наличие BOM:
+    xxd file.txt | head -1
+    # 00000000: efbb bf7b...  ← BOM перед { в JSON
+    
+    # Удалить BOM:
+    sed -i '1s/^\xEF\xBB\xBF//' file.txt
+    ```
+    В Python используйте `encoding='utf-8-sig'` для автоматической обработки BOM.
+
+!!! bug "Терминал показывает мусор вместо Unicode"
+    Проверьте:
+    
+    - `echo $LANG` — должно содержать `UTF-8` (например, `en_US.UTF-8`)
+    - `locale charmap` — должно вывести `UTF-8`
+    - Шрифт терминала должен поддерживать нужные символы (попробуйте Nerd Font или JetBrains Mono)
+
 !!! tip "Следующая глава"
     Разобрались с кодировками в Python. Теперь перейдём к **форматам файлов** — начнём с JSON → [JSON](../ch3/16-json.md)

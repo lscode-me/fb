@@ -8,17 +8,40 @@
 
 ## 44.1 Обзор протоколов
 
+```mermaid
+graph TD
+    subgraph "Файловые (прозрачная интеграция)"
+        NFS["NFS v3/v4<br/>UNIX/Linux"]
+        SMB["SMB/CIFS<br/>Windows/Samba"]
+        WebDAV["WebDAV<br/>HTTP-based"]
+    end
+
+    subgraph "Передача файлов"
+        SFTP["SFTP / SCP<br/>SSH-based"]
+        FTP["FTP<br/>legacy"]
+        RSYNC["rsync<br/>delta sync"]
+    end
+
+    subgraph "Объектные / API"
+        S3["S3 API<br/>объектное хранилище"]
+        HTTP["HTTP GET/PUT<br/>Range Requests"]
+    end
+
+    NFS --> VFS["VFS ядра<br/>(mount)"]
+    SMB --> VFS
+    WebDAV --> FUSE["FUSE<br/>(user-space)"]
+    S3 --> FUSE
+
+    style NFS fill:#e8f5e9
+    style SMB fill:#e3f2fd
+    style S3 fill:#fff3e0
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Уровень приложений                       │
-├─────────────────┬─────────────────────┬─────────────────────┤
-│      NFS        │       SMB/CIFS      │      WebDAV         │
-│   (UNIX/Linux)  │   (Windows/Samba)   │   (HTTP-based)      │
-├─────────────────┼─────────────────────┼─────────────────────┤
-│      FTP        │       SFTP/SCP      │      rsync          │
-│   (legacy)      │   (SSH-based)       │   (delta sync)      │
-└─────────────────┴─────────────────────┴─────────────────────┘
-```
+
+Протоколы можно разделить на три категории:
+
+- **Файловые** — монтируются в VFS, приложения не знают, что файл удалённый (NFS, SMB)
+- **Передача** — копируют файлы между машинами (SFTP, rsync)
+- **Объектные** — API-доступ без монтирования (S3, HTTP)
 
 ---
 

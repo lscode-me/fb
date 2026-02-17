@@ -537,6 +537,75 @@ Python интерпретирует файл
 
 ---
 
+## 6.8 Шифрование: защита данных на диске (Data at Rest)
+
+Права доступа защищают файлы **внутри работающей ОС**. Но если злоумышленник получит физический доступ к диску (украденный ноутбук, изъятый сервер), права бесполезны — он просто смонтирует диск в другой системе.
+
+**Шифрование** решает эту проблему: данные на диске нечитаемы без ключа.
+
+### Уровни шифрования
+
+| Уровень | Технология | Что защищает |
+|---------|-----------|-------------|
+| **Полнодисковое** (FDE) | LUKS, BitLocker, FileVault | Весь диск / раздел |
+| **На уровне ФС** | fscrypt (ext4), APFS encryption | Отдельные директории |
+| **Контейнер** | VeraCrypt, LUKS-файл | Отдельный зашифрованный том |
+| **Файл** | GPG, `age`, openssl | Один конкретный файл |
+
+### Основные инструменты
+
+=== "Linux (LUKS)"
+    ```bash
+    # Создание зашифрованного раздела
+    sudo cryptsetup luksFormat /dev/sdX2
+    sudo cryptsetup open /dev/sdX2 encrypted
+    sudo mkfs.ext4 /dev/mapper/encrypted
+    sudo mount /dev/mapper/encrypted /mnt/secret
+    
+    # Закрытие
+    sudo umount /mnt/secret
+    sudo cryptsetup close encrypted
+    ```
+
+=== "macOS (FileVault)"
+    ```bash
+    # Включение FileVault (шифрование всего диска)
+    sudo fdesetup enable
+    
+    # Статус
+    fdesetup status
+    # FileVault is On.
+    # Encryption type: APFS
+    ```
+
+=== "Windows (BitLocker)"
+    ```powershell
+    # Включение BitLocker (PowerShell от администратора)
+    Enable-BitLocker -MountPoint "C:" -EncryptionMethod XtsAes256
+    
+    # Статус
+    manage-bde -status C:
+    ```
+
+=== "Кросс-платформенное (VeraCrypt)"
+    ```bash
+    # Создание контейнера
+    veracrypt --text --create container.vc \
+      --size=1G --encryption=AES --hash=SHA-512 \
+      --filesystem=ext4 --volume-type=normal
+    
+    # Монтирование
+    veracrypt container.vc /mnt/vc
+    ```
+
+!!! warning "Шифрование ≠ безопасное удаление"
+    Шифрование защищает **живые данные**. Для безопасного удаления с SSD нужен Secure Erase (→ Глава 34), так как `shred` бесполезен из-за wear leveling.
+
+!!! info "Подробнее"
+    Детальный разбор блочного шифрования (LUKS + LVM, loop devices) → [Глава 34: Архитектура накопителей](../ch5/34-architecture.md) и [Глава 43: LVM](../ch5/43-lvm.md).
+
+---
+
 ## Резюме
 
 | Команда | Описание |
