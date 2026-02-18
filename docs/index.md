@@ -3,6 +3,7 @@ title: "Файлы: missing manual — полное руководство по 
 description: "Бесплатная онлайн-книга о файлах: от байтов до файловых систем. Кодировки, форматы (JSON, YAML, CSV, Parquet), инструменты командной строки, Python. Для разработчиков и дата-инженеров."
 hide:
   - navigation
+  - title
 ---
 
 # Файлы: missing manual

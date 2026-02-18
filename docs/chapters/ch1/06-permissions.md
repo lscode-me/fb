@@ -1,6 +1,8 @@
 ---
 title: Права доступа в Linux — chmod, chown, umask, ACL
 description: Полное руководство по правам доступа в Linux. Чтение/запись/выполнение (rwx), числовой и символьный режим, SUID/SGID, sticky bit, ACL.
+hide:
+  - title
 ---
 
 # Глава 6. Права доступа и владение

@@ -1,6 +1,8 @@
 ---
 title: JSON — полное руководство по формату данных
 description: Всё о JSON: синтаксис, типы данных, валидация, работа в Python и командной строке (jq). JSON Schema, JSON Lines, сравнение с YAML и XML.
+hide:
+  - title
 ---
 
 # Глава 16. JSON: JavaScript Object Notation
