@@ -145,7 +145,9 @@ markdown_extensions:
 plugins:
   - search:
       lang: ru
-  - social  # Генерация social cards для Open Graph
+  # social plugin disabled - using custom OG image instead
+  # To enable: pip install "mkdocs-material[imaging]"
+  # - social
   - meta  # Поддержка meta тегов в front matter
 
 extra_css:
