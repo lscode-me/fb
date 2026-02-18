@@ -1,7 +1,6 @@
 ---
-title: ZFS — руководство по файловой системе
-description: ZFS файловая система: pools, datasets, snapshots, репликация. Установка ZFS на Linux, настройка RAID-Z, практические примеры.hide:
-  - title---
+description: "ZFS файловая система: pools, datasets, snapshots, репликация. Установка ZFS на Linux, настройка RAID-Z, практические примеры."
+---
 
 # Глава 40. ZFS — файловая система будущего
 

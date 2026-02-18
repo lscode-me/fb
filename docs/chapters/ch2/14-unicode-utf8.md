@@ -1,8 +1,5 @@
 ---
-title: Unicode и UTF-8 — полное руководство по кодировкам
-description: Как работает Unicode и UTF-8. Code points, плоскости BMP и SMP, байтовое представление символов. Практические примеры на Python и в командной строке.
-hide:
-  - title
+description: "Как работает Unicode и UTF-8. Code points, плоскости BMP и SMP, байтовое представление символов. Практические примеры на Python."
 ---
 
 # Глава 14. Unicode и UTF-8: Единый стандарт
