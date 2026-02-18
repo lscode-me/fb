@@ -1,3 +1,8 @@
+---
+title: YAML — полное руководство по формату
+description: Синтаксис YAML, типы данных, anchors и aliases. Примеры для Kubernetes, Docker Compose, GitHub Actions. Сравнение с JSON и TOML.
+---
+
 # Глава 17. YAML: Yet Another Markup Language
 
 ## Введение

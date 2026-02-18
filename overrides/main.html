@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  
+  <!-- Favicons -->
+  <link rel="icon" type="image/x-icon" href="{{ config.site_url }}assets/images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="{{ config.site_url }}assets/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="{{ config.site_url }}assets/images/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ config.site_url }}assets/images/apple-touch-icon.png">
+  <link rel="manifest" href="{{ config.site_url }}manifest.json">
+  <meta name="theme-color" content="#63b3ed">
+  
+  {% if page %}
+  <!-- SEO Meta Tags -->
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow">
+  <link rel="canonical" href="{{ page.canonical_url }}">
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="{% if page.is_homepage %}website{% else %}article{% endif %}">
+  <meta property="og:url" content="{{ page.canonical_url }}">
+  <meta property="og:title" content="{{ page.title }} | {{ config.site_name }}">
+  <meta property="og:description" content="{{ page.meta.description | default(config.site_description) }}">
+  <meta property="og:site_name" content="{{ config.site_name }}">
+  <meta property="og:locale" content="ru_RU">
+  {% if page.meta.image %}
+  <meta property="og:image" content="{{ page.meta.image }}">
+  {% else %}
+  <meta property="og:image" content="{{ config.site_url }}assets/images/og-image.png">
+  {% endif %}
+  
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page.title }} | {{ config.site_name }}">
+  <meta name="twitter:description" content="{{ page.meta.description | default(config.site_description) }}">
+  {% if page.meta.image %}
+  <meta name="twitter:image" content="{{ page.meta.image }}">
+  {% endif %}
+  
+  <!-- Additional Meta -->
+  <meta name="author" content="{{ config.site_author }}">
+  <meta name="keywords" content="файлы, форматы файлов, кодировки, UTF-8, Unicode, JSON, YAML, CSV, XML, Parquet, файловые системы, Linux, ext4, XFS, ZFS, Btrfs, Python, командная строка, grep, sed, awk, программирование, разработка, дата-инженерия">
+  
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "{% if page.is_homepage %}WebSite{% else %}TechArticle{% endif %}",
+    "name": "{{ page.title }}",
+    "description": "{{ page.meta.description | default(config.site_description) }}",
+    "url": "{{ page.canonical_url }}",
+    "author": {
+      "@type": "Person",
+      "name": "{{ config.site_author }}",
+      "url": "https://lscode.me"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "{{ config.site_name }}",
+      "url": "{{ config.site_url }}"
+    },
+    "inLanguage": "ru-RU",
+    "isAccessibleForFree": true,
+    "license": "https://creativecommons.org/licenses/by-sa/4.0/"
+    {% if not page.is_homepage %},
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "{{ page.canonical_url }}"
+    },
+    "datePublished": "2025-01-01",
+    "dateModified": "2026-02-18"
+    {% endif %}
+  }
+  </script>
+  
+  {% if page.is_homepage %}
+  <!-- Breadcrumb Schema for Homepage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Главная",
+      "item": "{{ config.site_url }}"
+    }]
+  }
+  </script>
+  
+  <!-- Book Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Book",
+    "name": "Файлы: missing manual",
+    "description": "Полное практическое руководство по файлам, форматам, кодировкам и файловым системам",
+    "author": {
+      "@type": "Person",
+      "name": "{{ config.site_author }}"
+    },
+    "url": "{{ config.site_url }}",
+    "inLanguage": "ru-RU",
+    "genre": ["Computer Science", "Programming", "Software Engineering"],
+    "numberOfPages": "50+",
+    "isAccessibleForFree": true,
+    "audience": {
+      "@type": "Audience",
+      "audienceType": ["Developers", "Data Engineers", "System Administrators", "Students"]
+    }
+  }
+  </script>
+  {% endif %}
+  {% endif %}
+{% endblock %}

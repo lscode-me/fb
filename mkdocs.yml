@@ -1,16 +1,36 @@
 site_name: "Файлы: missing manual"
-site_description: "Практическое руководство по файлам, форматам и инструментам"
+site_description: "Полное практическое руководство по файлам, форматам, кодировкам и файловым системам. От байтов до терабайтов — всё о работе с данными для разработчиков и инженеров."
 site_author: "Расул Османов"
 repo_url: "https://github.com/lscode-me/fb"
 repo_name: "lscode-me/fb"
 site_url: "https://fb.lscode.me/"
+
+# SEO и Open Graph
 extra:
   analytics:
     provider: google
     property: G-VZ6Y8SN3DX
   social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lscode-me/fb
+      name: GitHub репозиторий
     - icon: fontawesome/solid/envelope
       link: mailto:admin@lscode.me
+      name: Email автора
+  # Open Graph для социальных сетей
+  meta:
+    - name: keywords
+      content: файлы, форматы файлов, кодировки, UTF-8, Unicode, JSON, YAML, CSV, файловые системы, Linux, ext4, ZFS, Python, программирование
+    - name: author
+      content: Расул Османов
+    - property: og:type
+      content: website
+    - property: og:locale
+      content: ru_RU
+    - property: og:site_name
+      content: "Файлы: missing manual"
+    - name: twitter:card
+      content: summary_large_image
 copyright: "© 2026 Расул Османов. Лицензия CC BY-SA 4.0"
 
 nav:
@@ -82,7 +102,11 @@ nav:
 
 theme:
   name: material
+  custom_dir: overrides
   language: ru
+  favicon: assets/images/favicon.ico
+  icon:
+    logo: material/file-document
   font:
     text: Inter
     code: JetBrains Mono
@@ -90,8 +114,11 @@ theme:
     - navigation.sections
     - navigation.expand
     - navigation.top
+    - navigation.indexes
     - toc.follow
     - content.code.copy
+    - search.suggest
+    - search.highlight
 
 markdown_extensions:
   - admonition
@@ -116,7 +143,10 @@ markdown_extensions:
       generic: true
 
 plugins:
-  - search
+  - search:
+      lang: ru
+  - social  # Генерация social cards для Open Graph
+  - meta  # Поддержка meta тегов в front matter
 
 extra_css:
   - assets/styles.css

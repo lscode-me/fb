@@ -1,3 +1,8 @@
+---
+title: Работа с файлами в Python — pathlib, io, mmap
+description: Python глубокое погружение в файловые операции. pathlib vs os.path, модуль io, кодировки, буферизация, memory-mapped files.
+---
+
 # Глава 31. Python: глубокое погружение в файловые операции
 
 ## Введение

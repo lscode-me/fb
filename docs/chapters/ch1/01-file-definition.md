@@ -1,3 +1,8 @@
+---
+title: Что такое файл в Unix/Linux — философия "Everything is a file"
+description: Узнайте, что такое файл в Unix и Linux. Философия "Everything is a file", единый интерфейс open/read/write/close, файловые дескрипторы и типы файлов.
+---
+
 # Глава 1. Что такое файл: формальное определение
 
 ## Введение
