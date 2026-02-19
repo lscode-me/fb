@@ -59,6 +59,6 @@
 
 **Расул Османов** — разработчик и технический писатель.
 
-- GitHub: [github.com/lscode-me](https://github.com/lscode-me)
+- GitHub: [github.com/lscode-me/fb](https://github.com/lscode-me/fb)
 - Email: [admin@lscode.me](mailto:admin@lscode.me)
 - Связь: через Issues в [репозитории книги](https://github.com/lscode-me/fb)

