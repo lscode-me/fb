@@ -19,3 +19,4 @@ Allow: /
 
 # Блокируем технические страницы
 Disallow: /search/
+Disallow: /cdn-cgi/
