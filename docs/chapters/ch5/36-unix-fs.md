@@ -722,7 +722,61 @@ FUSE(HelloFS(), "/mnt/hello", foreground=True)
     - **Wiki-FS**: директории = категории, файлы = статьи из Wikipedia API
     - **SQL-FS**: `cat /mnt/db/users/123.json` → SELECT из базы данных
     - **Git-FS**: монтирование любого коммита как read-only директории
-    - **Tar-FS**: `archivemount archive.tar.gz /mnt/archive` — уже существует!
+
+### FUSE на практике: archivemount
+
+**archivemount** — готовая FUSE-ФС, которая монтирует архив как обычную директорию. Никакой распаковки на диск — файлы из архива доступны через стандартные команды:
+
+```bash
+# Установка
+$ sudo apt install archivemount    # Debian/Ubuntu
+$ brew install archivemount        # macOS
+
+# Монтируем tar.gz как директорию
+$ mkdir /tmp/archive
+$ archivemount backup.tar.gz /tmp/archive
+
+# Теперь архив — обычная папка
+$ ls /tmp/archive/
+docs/  src/  README.md
+
+$ cat /tmp/archive/README.md
+# My Project ...
+
+$ grep -r "TODO" /tmp/archive/src/
+src/main.py:# TODO: refactor this
+
+$ wc -l /tmp/archive/src/*.py
+  142 /tmp/archive/src/main.py
+   87 /tmp/archive/src/utils.py
+
+# Размонтируем
+$ fusermount -u /tmp/archive       # Linux
+$ umount /tmp/archive              # macOS
+```
+
+Поддерживаемые форматы: `.tar`, `.tar.gz`, `.tar.bz2`, `.tar.xz`, `.zip`, `.iso`, `.cpio` и другие (всё, что понимает libarchive).
+
+```bash
+# Работает с любым форматом
+$ archivemount project.zip /tmp/zip_mount
+$ archivemount image.iso /tmp/iso_mount
+
+# Можно даже писать в архив (для некоторых форматов)
+$ archivemount -o readwrite archive.tar /tmp/rw_mount
+$ echo "new file" > /tmp/rw_mount/new.txt
+$ fusermount -u /tmp/rw_mount
+# archive.tar теперь содержит new.txt
+```
+
+!!! note "Когда это полезно"
+    - Просмотр содержимого огромного архива без распаковки на диск
+    - Поиск по файлам внутри архива (`grep`, `find`, `diff`)
+    - Скрипты, которым нужен доступ к отдельным файлам из архива
+    - Сравнение содержимого двух архивов: `diff -r /tmp/mount1 /tmp/mount2`
+
+!!! warning "Ограничения"
+    archivemount загружает **индекс всего архива в память** при монтировании. Для архивов в десятки ГБ с миллионами файлов это может быть медленным и затратным по RAM. Альтернатива для больших tar-архивов — **ratarmount**, который строит индекс и кэширует его на диск.
 
 ---
 
