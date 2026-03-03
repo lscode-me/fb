@@ -46,10 +46,16 @@ Copy-on-Write (CoW, копирование при записи)
 Coreutils (базовые утилиты)
 :   Набор базовых утилит GNU/POSIX: `cat`, `head`, `tail`, `sort`, `uniq`, `cut`, `tr`, `wc`, `tee`, `xargs` и др. → [Глава 27](chapters/ch4/27-coreutils.md)
 
+cramfs (Compressed ROM File System)
+:   Устаревшая read-only файловая система со сжатием для embedded Linux. Ограничения: максимум 16 МБ на файл. Заменена на SquashFS и EROFS. → [Глава 39](chapters/ch5/39-linux-fs.md)
+
 CSV (Comma-Separated Values, значения через запятую)
 :   Текстовый табличный формат. Каждая строка — запись, поля разделены запятыми. Стандарт: RFC 4180. → [Глава 19](chapters/ch3/19-csv-tsv.md)
 
 ## D
+
+dd (dataset definition / disk dump)
+:   Утилита копирования и конвертации данных побайтно. Используется для создания образов дисков, запись ISO на USB, бинарный патчинг. Параметры: `if` (input), `of` (output), `bs` (block size), `seek`, `conv`. → [Глава 27](chapters/ch4/27-coreutils.md)
 
 Dentry (directory entry, запись каталога)
 :   Запись в директории, связывающая имя файла с номером inode. Директория — это файл, содержащий список dentry. → [Глава 2](chapters/ch1/02-file-types-content.md)
@@ -64,6 +70,9 @@ ELF (Executable and Linkable Format)
 
 Endianness (порядок байтов)
 :   См. Big-endian / Little-endian.
+
+EROFS (Enhanced Read-Only File System)
+:   Современная read-only файловая система для Linux (kernel 5.4+). Разработана Huawei для Android. Преимущества: высокая производительность на flash, LZ4/LZMA сжатие, shared page cache (Linux 7.0+) для дедупликации памяти между контейнерами. → [Глава 39](chapters/ch5/39-linux-fs.md), [Глава 49](chapters/ch5/49-containers.md)
 
 ext4 (Fourth Extended Filesystem)
 :   Основная файловая система Linux. Журналируемая, поддерживает файлы до 16 ТБ, разделы до 1 ЭБ. → [Глава 39](chapters/ch5/39-linux-fs.md)
@@ -96,6 +105,9 @@ Inode (index node, индексный узел)
 
 IOPS (Input/Output Operations Per Second, операции ввода-вывода в секунду)
 :   Метрика производительности накопителя. HDD: ~100–200, SSD: ~10 000–100 000, NVMe: ~100 000–1 000 000. → [Глава 34](chapters/ch5/34-architecture.md)
+
+ISO9660
+:   Стандарт файловой системы для CD/DVD (1988). Расширения: Rock Ridge (POSIX права, symlinks), Joliet (Unicode имена), El Torito (загрузка с CD). Инструменты: `genisoimage`, `xorriso`. → [Глава 39](chapters/ch5/39-linux-fs.md)
 
 ## J
 
@@ -148,6 +160,9 @@ NTFS (New Technology File System)
 Object storage (объектное хранилище)
 :   Архитектура хранения данных без иерархии каталогов. Каждый объект = ключ + данные + метаданные. Пример: Amazon S3. → [Глава 45](chapters/ch5/45-s3.md)
 
+OverlayFS
+:   Слоёная файловая система Union FS типа. Объединяет несколько директорий в одну: read-only нижние слои (lower) + read-write верхний слой (upper) → объединённый вид (merged). Используется Docker и Podman для слоёв контейнерных образов. → [Глава 39](chapters/ch5/39-linux-fs.md), [Глава 49](chapters/ch5/49-containers.md)
+
 ## P
 
 Parquet (колоночный формат)
@@ -174,6 +189,9 @@ S3 (Simple Storage Service)
 
 Sparse file (разреженный файл)
 :   Файл, в котором последовательности нулевых байтов не занимают место на диске. `ls -l` показывает логический размер, `du` — фактический. → [Глава 3](chapters/ch1/03-metadata-inode.md)
+
+SquashFS
+:   Read-only файловая система со сжатием (kernel 2.6.29+). Поддерживает gzip, xz, zstd, lzo. Используется в Ubuntu Live CD, Snap packages, embedded системах. Инструменты: `mksquashfs`, `unsquashfs`. → [Глава 39](chapters/ch5/39-linux-fs.md)
 
 Symbolic link (симлинк, символическая ссылка)
 :   Специальный файл, содержащий путь к другому файлу. В отличие от жёсткой ссылки, может указывать на файлы в других ФС и на несуществующие файлы. → [Глава 4](chapters/ch1/04-links.md)
@@ -206,6 +224,9 @@ xattr (extended attributes, расширенные атрибуты)
 
 XFS
 :   Высокопроизводительная 64-битная журналируемая ФС. Оптимальна для больших файлов и параллельного I/O. Файловая система по умолчанию в RHEL/CentOS. → [Глава 39](chapters/ch5/39-linux-fs.md)
+
+xfs_healer
+:   Утилита автоматического обнаружения и восстановления повреждений XFS (Linux 7.0+). Работает в online-режиме без размонтирования ФС. Сканирует метаданные, исправляет мелкие повреждения, уведомляет о критичных проблемах. → [Глава 36](chapters/ch5/36-unix-fs.md)
 
 XML (Extensible Markup Language, расширяемый язык разметки)
 :   Текстовый формат для структурированных данных с тегами. Поддерживает пространства имён, схемы (DTD, XSD), запросы (XPath). → [Глава 20](chapters/ch3/20-xml.md)
