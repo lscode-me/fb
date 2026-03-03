@@ -380,13 +380,13 @@ Docker-контейнер = namespaces + cgroups + OverlayFS:
 ```
 docker run -it --memory=512m ubuntu bash
 
-                    ┌─────────────────────────┐
-                    │  Процесс bash (PID 1)    │
+                    ┌───────────────────────────┐
+                    │  Процесс bash (PID 1)     │
                     │                           │
-  Namespaces:       │  mount: своя ФС          │
-  ├── mount ns      │  pid:   свои процессы    │
-  ├── pid ns        │  net:   свои интерфейсы  │
-  ├── net ns        │  uts:   свой hostname    │
+  Namespaces:       │  mount: своя ФС           │
+  ├── mount ns      │  pid:   свои процессы     │
+  ├── pid ns        │  net:   свои интерфейсы   │
+  ├── net ns        │  uts:   свой hostname     │
   ├── uts ns        │  user:  свой uid mapping  │
   ├── ipc ns        │  ipc:   свои очереди      │
   └── user ns       └─────────────┬─────────────┘
@@ -536,6 +536,8 @@ NAME="Alpine Linux"
 | ФС / Драйвер | Механизм | Используется в |
 |---------------|----------|---------------|
 | **OverlayFS** | Слои + CoW на уровне файлов | Docker (по умолчанию), Podman |
+| **EROFS** | Read-only compressed ФС + shared cache | Kubernetes, embedded, Android |
+| **SquashFS** | Read-only compressed ФС | Snap packages, embedded |
 | **Btrfs** | Subvolumes + snapshots + CoW на уровне блоков | Docker (btrfs driver) |
 | **ZFS** | Clones + snapshots + CoW | Docker (zfs driver) |
 | **Device Mapper** | Thin provisioning + CoW на уровне блоков | Docker (devicemapper) |
@@ -551,6 +553,85 @@ $ docker info | grep "Storage Driver"
 $ btrfs subvolume snapshot /images/ubuntu /containers/mycontainer
 # Мгновенно, CoW на уровне блоков
 ```
+
+### EROFS для контейнерных образов
+
+**EROFS** (Enhanced Read-Only File System) — современная альтернатива SquashFS для **read-only базовых слоёв** контейнеров.
+
+**Преимущества для контейнеров:**
+
+```
+Традиционный подход (OverlayFS):
+┌─────────────────────────────────┐
+│  Container 1 writable layer     │
+├─────────────────────────────────┤
+│  Image layer 3 (tar)            │ ← На диске распакован
+│  Image layer 2 (tar)            │ ← На диске распакован
+│  Image layer 1 (tar)            │ ← На диске распакован
+└─────────────────────────────────┘
+
+EROFS подход:
+┌─────────────────────────────────┐
+│  Container writable layer       │
+├─────────────────────────────────┤
+│  rootfs.erofs (compressed)      │ ← Сжатый образ
+└─────────────────────────────────┘
+    • Меньше места на диске
+    • Быстрее pull (меньше байт)
+    • Shared page cache (Linux 7.0+)
+```
+
+**Использование в Kubernetes:**
+
+```bash
+# Создать контейнерный образ с EROFS base layer
+$ mkfs.erofs -z lz4 ubuntu-base.erofs /var/lib/containerd/ubuntu/
+
+# В containerd можно использовать EROFS snapshotter
+# /etc/containerd/config.toml:
+[plugins."io.containerd.snapshotter.v1.erofs"]
+  root_path = "/var/lib/containerd/io.containerd.snapshotter.v1.erofs"
+
+# Под капотом:
+# 1. Base image → EROFS образ (сжато)
+# 2. Mount EROFS как lower layer (RO)
+# 3. OverlayFS upper layer для изменений (RW)
+```
+
+**Shared Page Cache (Linux 7.0+):**
+
+Ключевое преимущество — **дедупликация в памяти** между контейнерами:
+
+```
+Node с 10 контейнерами на базе ubuntu:latest:
+
+Без shared cache:
+  RAM: 10 × libc.so.6 (2 MB) = 20 MB в памяти
+  
+С EROFS shared cache:
+  RAM: 1 × libc.so.6 (2 MB) = 2 MB в памяти
+  ↳ Экономия: 18 MB только на одной библиотеке
+```
+
+**Сравнение read-only ФС для контейнеров:**
+
+| Критерий | OverlayFS (tar) | SquashFS | EROFS |
+|----------|----------------|----------|-------|
+| **Сжатие на диске** | ❌ (tar распакован) | ✅ (отлично) | ✅ (лучше) |
+| **Производительность** | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| **Shared cache** | ❌ | ❌ | ✅ (Linux 7.0+) |
+| **Время монтирования** | Быстро (уже распакован) | Медленнее | Быстро |
+| **Место на диске** | Много (распакован) | Мало | Мало |
+| **Mainline kernel** | ✅ | ✅ (давно) | ✅ (с 5.4) |
+| **Применение** | Стандарт (Docker/K8s) | Snap packages | Embedded, Android, K8s |
+
+**Когда использовать EROFS в контейнерах:**
+
+- ✅ **Embedded Kubernetes** — ограниченное хранилище и RAM
+- ✅ **Edge computing** — медленные сети (меньше pull time)
+- ✅ **Множество идентичных контейнеров** — shared cache экономит RAM
+- ✅ **Android контейнеры** — EROFS уже используется в Android 11+
+- ⚠️ **Требуется kernel 5.4+** (shared cache — 7.0+)
 
 ---
 

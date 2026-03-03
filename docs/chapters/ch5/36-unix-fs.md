@@ -181,7 +181,29 @@ xfs_fsr /mount/point
 
 # Проверка (только unmounted)
 xfs_repair /dev/sdb1
+
+# Автоматическое восстановление (Linux 7.0+)
+xfs_healer /dev/sdb1    # Online самовосстановление XFS
 ```
+
+!!! info "Linux 7.0: xfs_healer"
+    В Linux 7.0 появилась утилита **xfs_healer** — фоновый демон для автоматического обнаружения и восстановления повреждений XFS в online-режиме. Работает проактивно, без размонтирования ФС:
+    
+    - Сканирует метаданные в реальном времени
+    - Исправляет мелкие повреждения автоматически
+    - Уведомляет о критичных проблемах
+    - Интеграция с systemd для автоматического запуска
+    
+    ```bash
+    # Запуск демона (systemd)
+    sudo systemctl enable --now xfs_healer@sdb1
+    
+    # Ручной запуск
+    sudo xfs_healer -v /dev/sdb1
+    
+    # Статус
+    sudo xfs_healer_status /dev/sdb1
+    ```
 
 ### Сравнение ext4 vs XFS
 

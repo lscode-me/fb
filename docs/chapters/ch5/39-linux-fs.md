@@ -250,7 +250,176 @@ docker info | grep Storage
 
 ---
 
-## 39.6 Специальные файловые системы
+## 39.6 Read-Only файловые системы
+
+Read-only файловые системы предназначены для хранения неизменяемых данных с максимальным сжатием. Используются во встроенных системах, Live CD/USB, контейерах и Android.
+
+### EROFS (Enhanced Read-Only File System)
+
+**EROFS** — современная read-only файловая система для Linux, разработанная Huawei для Android (kernel 4.19+, mainline с 5.4).
+
+**Преимущества:**
+
+- **Высокая производительность**: оптимизирована для flash-памяти и SSD
+- **Лучшее сжатие**: поддержка LZ4, LZMA (в разработке zstd)
+- **Меньше фрагментации**: по сравнению со SquashFS
+- **Прямой доступ**: файлы можно читать без полной распаковки
+- **Tail-packing**: мелкие файлы упаковываются вместе
+- **Shared page cache (Linux 7.0+)**: дедупликация в памяти между контейнерами
+
+!!! info "Linux 7.0: Shared Page Cache"
+    В Linux 7.0 EROFS получила поддержку **общего страничного кэша** (shared page cache) для контейнеров. Файлы с одинаковым хэшем содержимого в разных контейнерах теперь используют одну копию в оперативной памяти:
+    
+    ```
+    Контейнер 1:  /lib/libc.so.6  (хэш: abc123...)
+                         ↓
+             [Shared Page Cache]
+                         ↑
+    Контейнер 2:  /lib/libc.so.6  (хэш: abc123...)
+    
+    Экономия RAM: вместо 2× размер библиотеки → 1×
+    ```
+    
+    **Преимущества:**
+    - Значительная экономия памяти в окружениях с множеством контейнеров
+    - Автоматическая дедупликация по содержимому (content-addressable)
+    - Особенно эффективно для базовых образов с общими библиотеками
+    - Не требует изменений в существующих образах
+    
+    Включается автоматически при монтировании EROFS с kernel 7.0+.
+
+```bash
+# Создание EROFS образа (требуется erofs-utils)
+sudo apt install erofs-utils    # Debian/Ubuntu
+sudo dnf install erofs-utils    # Fedora
+
+# Создать образ из директории
+mkfs.erofs -z lz4 rootfs.erofs /path/to/rootfs
+
+# С максимальным сжатием
+mkfs.erofs -z lz4hc,9 rootfs.erofs /path/to/rootfs
+
+# Монтирование
+mount -t erofs rootfs.erofs /mnt
+
+# Информация
+fsck.erofs rootfs.erofs
+```
+
+**Использование:**
+
+- **Android**: системные разделы (starting with Android 11+)
+- **Контейнеры**: альтернатива SquashFS для read-only слоёв
+- **Embedded Linux**: встроенные системы с ограниченной памятью
+- **Live системы**: загрузочные USB/CD образы
+
+### SquashFS
+
+**SquashFS** — классическая read-only ФС со сжатием (kernel 2.6.29+).
+
+```bash
+# Создание SquashFS
+mksquashfs /source/dir image.squashfs -comp xz
+
+# С разными алгоритмами сжатия
+mksquashfs /dir image.squashfs -comp gzip    # Быстро, хуже сжатие
+mksquashfs /dir image.squashfs -comp lzo     # Очень быстро
+mksquashfs /dir image.squashfs -comp xz      # Медленно, лучше сжатие
+mksquashfs /dir image.squashfs -comp zstd    # Баланс (kernel 4.14+)
+
+# Монтирование
+mount -t squashfs image.squashfs /mnt -o loop
+
+# Просмотр содержимого без монтирования
+unsquashfs -ll image.squashfs
+
+# Извлечь файлы
+unsquashfs image.squashfs
+```
+
+**Применение:**
+
+- **Linux LiveCD**: Ubuntu, Fedora Live используют SquashFS
+- **Snap packages**: Ubuntu Snap = SquashFS + AppArmor
+- **Прошивки роутеров**: OpenWrt использует SquashFS + OverlayFS
+- **Игровые консоли**: PS4/PS5 используют модифицированный SquashFS
+
+### ISO9660 и Rock Ridge
+
+**ISO9660** — стандарт файловой системы для CD/DVD.
+
+```bash
+# Создать ISO образ
+genisoimage -o image.iso -R -J /path/to/files
+# -R = Rock Ridge (поддержка UNIX permissions, symlinks)
+# -J = Joliet (длинные имена для Windows)
+
+# Или с помощью xorriso (современная замена)
+xorriso -as mkisofs -o image.iso -R -J /path/to/files
+
+# Монтирование
+mount -o loop image.iso /mnt
+
+# Создать загрузочный ISO (UEFI + BIOS)
+xorriso -as mkisofs \
+  -o bootable.iso \
+  -isohybrid-mbr /usr/lib/syslinux/mbr/isohdpfx.bin \
+  -c boot/isolinux/boot.cat \
+  -b boot/isolinux/isolinux.bin \
+  -no-emul-boot \
+  -boot-load-size 4 \
+  -boot-info-table \
+  /path/to/files
+```
+
+**Расширения:**
+
+| Расширение | Назначение |
+|------------|------------|
+| **Rock Ridge** | POSIX permissions, длинные имена, symlinks |
+| **Joliet** | Unicode имена (для Windows) |
+| **El Torito** | Загрузка с CD-ROM |
+| **UDF** | Замена ISO9660 (DVD/Blu-ray) |
+
+### cramfs (устаревшая)
+
+**cramfs** — старая сжатая read-only ФС для embedded Linux.
+
+```bash
+# Создание (в Linux kernel < 2.6)
+mkcramfs /source/dir image.cramfs
+
+# Монтирование
+mount -t cramfs image.cramfs /mnt -o loop
+```
+
+!!! warning "cramfs устарела"
+    Не используется с ~2010 года. Замена: SquashFS (универсально) или EROFS (современно).
+
+### Сравнение Read-Only ФС
+
+| Характеристика | EROFS | SquashFS | ISO9660 | cramfs |
+|---------------|-------|----------|---------|--------|
+| **Год появления** | 2019 | 2002 | 1988 | 1998 |
+| **Kernel mainline** | 5.4+ | 2.6.29+ | 1.0+ | 2.4+ |
+| **Сжатие** | LZ4, LZMA | gzip, xz, zstd, lzo | ❌ | zlib |
+| **Производительность** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+| **Степень сжатия** | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐ | ⭐⭐⭐ |
+| **Tail-packing** | ✅ | ✅ | ❌ | ❌ |
+| **Max размер файла** | 4 GB | 16 EB | 4 GB | 16 MB |
+| **Использование** | Android, embedded | Live CD, Snap | CD/DVD/ISO | Устарела |
+| **Рекомендация** | ✅ Новые проекты | ✅ Универсально | Только ISO | ❌ Не использовать |
+
+**Рекомендации:**
+
+- **Новые embedded/Android системы** → EROFS
+- **Live CD/USB, контейнеры** → SquashFS (зрелое, универсальное)
+- **ISO образы для CD/DVD** → ISO9660 + Rock Ridge
+- **Legacy embedded** → SquashFS (НЕ cramfs)
+
+---
+
+## 39.7 Специальные файловые системы
 
 ### tmpfs (RAM диск)
 
@@ -285,7 +454,7 @@ proc on /proc type proc
 
 ---
 
-## 39.7 Сетевые файловые системы
+## 39.8 Сетевые файловые системы
 
 ### NFS (Network File System)
 
@@ -321,7 +490,7 @@ fusermount -u /mnt
 
 ---
 
-## 39.8 Сравнение Linux ФС
+## 39.9 Сравнение Linux ФС
 
 | ФС | COW | Снапшоты | Сжатие | RAID | Для чего |
 |----|-----|----------|--------|------|----------|
@@ -345,7 +514,7 @@ fusermount -u /mnt
 
 ---
 
-## 39.8 tmpfs и ramfs — файловые системы в RAM
+## 39.10 tmpfs и ramfs — файловые системы в RAM
 
 Иногда файлы нужно хранить **только в оперативной памяти** — для скорости, безопасности или временных данных.
 
@@ -415,7 +584,7 @@ hdiutil detach $DISK
 
 ---
 
-## 39.9 Сравнительная таблица файловых систем
+## 39.11 Сравнительная таблица файловых систем
 
 | | ext4 | XFS | Btrfs | ZFS | APFS | NTFS |
 |---|---|---|---|---|---|---|
