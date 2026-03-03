@@ -189,21 +189,54 @@ xfs_healer /dev/sdb1    # Online самовосстановление XFS
 !!! info "Linux 7.0: xfs_healer"
     В Linux 7.0 появилась утилита **xfs_healer** — фоновый демон для автоматического обнаружения и восстановления повреждений XFS в online-режиме. Работает проактивно, без размонтирования ФС:
     
-    - Сканирует метаданные в реальном времени
+    **Возможности:**
+    
+    - Сканирует метаданные в реальном времени через `XFS_IOC_HEALTH_MONITOR` ioctl
     - Исправляет мелкие повреждения автоматически
-    - Уведомляет о критичных проблемах
+    - Уведомляет о критичных проблемах (sick/corrupt metadata, I/O errors)
     - Интеграция с systemd для автоматического запуска
+    - User-space daemon принимает решения о восстановлении (может убить контейнер, запустить scrub и т.д.)
+    
+    **Требования (важно!):**
+    
+    - ⚠️ **Kernel 6.12+** обязателен (может не быть включён в дистрибутивах)
+    - ⚠️ **xfsprogs 6.18+** для полной функциональности
+    - ⚠️ Форматирование с **reverse mapping** и **parent pointers**:
+      ```bash
+      # Для максимальных возможностей восстановления
+      mkfs.xfs -m rmapbt=1 -n parent=1 /dev/sdb1
+      # В xfsprogs 6.18+ это по умолчанию
+      ```
+    - ⚠️ **EXPERIMENTAL** — использовать только на тестовых системах!
+    
+    **Настройка автовосстановления:**
     
     ```bash
-    # Запуск демона (systemd)
-    sudo systemctl enable --now xfs_healer@sdb1
+    # 1. Включить systemd service для автозапуска
+    sudo systemctl enable --now xfs_healer_start
     
-    # Ручной запуск
-    sudo xfs_healer -v /dev/sdb1
+    # 2. Установить свойство autofsck=repair на ФС
+    sudo xfs_property /dev/sdb1 set autofsck=repair
+    # Или при форматировании:
+    mkfs.xfs -m autofsck=1 /dev/sdb1
     
-    # Статус
+    # 3. Проверить статус
     sudo xfs_healer_status /dev/sdb1
     ```
+    
+    **Ручной запуск:**
+    
+    ```bash
+    # Запуск демона вручную
+    sudo xfs_healer -v /dev/sdb1
+    ```
+    
+    **События мониторинга:**
+    
+    - `unmount` — ФС размонтирована, больше событий не будет
+    - `sick metadata` — повреждения обнаружены во время работы
+    - `corrupt metadata` — обнаружено fsck
+    - `media/IO errors` — проблемы с носителем
 
 ### Сравнение ext4 vs XFS
 

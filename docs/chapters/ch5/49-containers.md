@@ -613,6 +613,20 @@ Node с 10 контейнерами на базе ubuntu:latest:
   ↳ Экономия: 18 MB только на одной библиотеке
 ```
 
+**Механизм:**
+
+- Файлы получают **fingerprint** (extended attribute `trusted.erofs.fingerprint`)
+- Одинаковые fingerprints → общий page cache
+- Требует опции монтирования: `inode_share,domain_id=<name>`
+- `domain_id` обязателен для изоляции между пользователями
+
+```bash
+# Монтирование с page cache sharing
+mount -t erofs -o inode_share,domain_id=k8s-prod rootfs.erofs /var/lib/containerd/
+
+# ⚠️ Несовместимо с direct I/O (O_DIRECT)
+```
+
 **Сравнение read-only ФС для контейнеров:**
 
 | Критерий | OverlayFS (tar) | SquashFS | EROFS |
