@@ -8,6 +8,14 @@
 
 ### 06.03.2026
 
+- **Глоссарий**: масштабное расширение — с ~60 до 121 термина
+  - Добавлены файловые системы: APFS, ext2, ext3, FAT/exFAT, FFS, UFS/UFS2, HFS+, HAMMER/HAMMER2, LFS, ReFS, tmpfs
+  - Добавлены протоколы: NFS, SMB/CIFS, iSCSI, 9P, WebDAV, SFTP, SSHFS
+  - Добавлены концепции: B-tree, block group, cylinder group, extent, superblock, page cache, write barrier, checksum, scrub, snapshot, deduplication, silent data corruption, soft updates, TRIM, WAPBL, vdev, zpool
+  - Добавлены форматы: tar, gzip, DEFLATE, Huffman coding, ORC, Arrow, FLAC, WAV, WebP, TSV, EXIF, Git objects
+  - Добавлены кодировки: UTF-16, ISO-8859-1 (Latin-1), Windows-1251, Shift_JIS, code point
+  - Добавлены инструменты и стандарты: fsck, Docker/OCI, POSIX, procfs/sysfs, tokenization
+  - Исправлен алфавитный порядок внутри секций; добавлена секция W; расширены определения XFS, ext4, NTFS
 - **Ch5/36 UNIX ФС**: масштабное расширение главы
   - Эволюционная диаграмма ФС расширена с 9 до 23 файловых систем, добавлены семейства (BSD, Linux, Solaris)
   - Исправлено описание связи FFS→UFS: отдельная врезка с историей 4.2BSD→SunOS→SVR4
