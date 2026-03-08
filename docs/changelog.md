@@ -8,6 +8,15 @@
 
 ### 08.03.2026
 
+- **Ch2/15 Кодировки в Python**: новые разделы и дополнения по материалам статьи python_strings.wiki
+  - **15.7 Ошибка 5**: ловушка regex по байтовым строкам с кириллицей — символьный класс разбивает многобайтовые последовательности на отдельные байты
+  - **15.11 Кодировка исходного кода (PEP 263)**: декларация `# coding: utf-8` в Python 2, PEP 3120 в Python 3
+  - **15.12 Кодировки потоков ввода-вывода**: `sys.stdin.encoding`/`sys.stdout.encoding`, поведение при перенаправлении в pipe (Python 2 vs 3), `PYTHONIOENCODING`, `PYTHONUTF8` / UTF-8 Mode (PEP 540, PEP 686)
+  - **15.13 Кодировка файловой системы**: `sys.getfilesystemencoding()`, `os.listdir()` и тип аргумента, `surrogateescape` (PEP 383) для невалидных имён файлов, PEP 529 на Windows
+  - **15.14 Сортировка Unicode-строк (collation)**: `locale.strxfrm`, `pyuca` (Unicode Collation Algorithm), `babel` для интернационализации, библиотека `regex` для Unicode properties
+  - Обновлена таблица Резюме: добавлены строки про кодировку исходного кода и кодировку stdout в pipe
+  - Обновлены правила: добавлены пункты про `PYTHONIOENCODING` и `surrogateescape`
+
 - **Ch4/26 Потоки**: добавлен раздел «Ловушка: буферизация при записи в файл»
   - Пример с `print()` + `subprocess` + `O_APPEND`: буферизация ломает порядок и структуру строк
   - Пошаговое объяснение пути данных через TextIOWrapper → BufferedWriter → FileIO → диск

@@ -498,6 +498,37 @@ with open('image.png', 'rb') as f:
     data = f.read()  # bytes
 ```
 
+### Ошибка 5: Regex по байтовым строкам с кириллицей
+
+Эта ловушка характерна для Python 2, но иллюстрирует фундаментальную проблему смешения байтов и текста:
+
+```python
+# Python 2, терминал в UTF-8
+>>> import re
+>>> re.search('м', 'жаба')     # Ничего — ожидаемо
+>>> re.search('м|н', 'жаба')   # Ничего — тоже ожидаемо
+>>> re.search('[мн]', 'жаба')  # Нашли! Почему?!
+<_sre.SRE_Match object at 0x7f04f2d46308>
+>>> re.findall('[мн]', 'жаба')
+['\xd0', '\xd0', '\xd0', '\xd0']
+```
+
+Причина: буква `м` в UTF-8 — это два байта `\xd0\xbc`. Когда regex видит символьный класс `[мн]`, он разбивает байтовые последовательности на **отдельные байты**: `[\xd0\xbc\xd0\xbd]`. Байт `\xd0` — общий префикс почти всех кириллических символов в UTF-8, поэтому он находится в каждом символе строки `'жаба'`.
+
+В Python 3 эта проблема не возникает, потому что `str` — это всегда Unicode, а `bytes` и `str` нельзя смешивать:
+
+```python
+# Python 3
+>>> import re
+>>> re.findall('[мн]', 'жаба')  # Работает корректно с символами
+[]
+>>> re.findall(b'[\xd0]', 'жаба'.encode())  # Нужно явно работать с байтами
+[b'\xd0', b'\xd0', b'\xd0', b'\xd0']
+```
+
+!!! warning "Мораль"
+    Если вы работаете с текстом — используйте `str`, а не `bytes`. Regex-паттерны и строки должны быть одного типа.
+
 ---
 
 ## 15.8 Доступные кодировки в Python
@@ -810,6 +841,295 @@ UnicodeEncodeError: 'undefined' codec can't encode characters
 
 ---
 
+## 15.11 Кодировка исходного кода (PEP 263)
+
+В Python 2 если исходный файл содержит не-ASCII символы (например, кириллицу в строковых литералах или комментариях), необходимо явно указать кодировку файла в первой или второй строке:
+
+```python
+# -*- coding: utf-8 -*-
+# или короче:
+# coding: utf-8
+
+приветствие = u'Привет, мир!'
+```
+
+Без этой декларации Python 2 выдаёт `SyntaxError`:
+
+```bash
+$ echo 'print u"жаба"' | python2
+  File "<stdin>", line 1
+SyntaxError: Non-ASCII character '\xd0' in file <stdin> on line 1,
+  but no encoding declared; see http://python.org/dev/peps/pep-0263/
+```
+
+В **Python 3** кодировка по умолчанию — UTF-8 ([PEP 3120](https://peps.python.org/pep-3120/)), поэтому декларация `# coding: utf-8` больше не нужна. Однако она всё ещё часто встречается в кодовых базах, мигрированных с Python 2, и не вредит.
+
+!!! note "Формат декларации"
+    Python ищет паттерн `coding[=:]\s*([-\w.]+)` в первой или второй строке файла (вторая — если первая строка — shebang `#!/usr/bin/env python`). Все эти варианты валидны:
+    
+    ```python
+    # coding: utf-8
+    # -*- coding: utf-8 -*-
+    # vim: set fileencoding=utf-8 :
+    ```
+
+---
+
+## 15.12 Кодировки потоков ввода-вывода
+
+### sys.stdin.encoding и sys.stdout.encoding
+
+Python знает кодировку терминала через атрибуты `encoding` стандартных потоков:
+
+```python
+import sys
+print(sys.stdin.encoding)   # например: 'utf-8'
+print(sys.stdout.encoding)  # например: 'utf-8'
+print(sys.stderr.encoding)  # например: 'utf-8'
+```
+
+Эти значения определяются из **локали** операционной системы (`LC_CTYPE`, `LANG`).
+
+### Поведение при перенаправлении (pipes)
+
+Критически важный нюанс: поведение зависит от того, **куда** идёт ввод/вывод.
+
+**Python 2** — при перенаправлении кодировка сбрасывается в `None`:
+
+```bash
+# Python 2
+$ python2 -c 'import sys; print(sys.stdin.encoding, sys.stdout.encoding)'
+('UTF-8', 'UTF-8')
+
+$ echo test | python2 -c 'import sys; print(sys.stdin.encoding, sys.stdout.encoding)'
+(None, 'UTF-8')
+
+$ python2 -c 'import sys; print(sys.stdin.encoding, sys.stdout.encoding)' | cat
+('UTF-8', None)
+
+$ echo test | python2 -c 'import sys; print(sys.stdin.encoding, sys.stdout.encoding)' | cat
+(None, None)
+```
+
+Это означает, что `print(u'кириллица')` в Python 2 при перенаправлении в pipe вызывает `UnicodeEncodeError`, потому что Python не знает, в какой кодировке кодировать вывод, и использует `ascii`.
+
+**Python 3** — кодировка берётся из локали даже при перенаправлении:
+
+```bash
+# Python 3
+$ python3 -c 'import sys; print(sys.stdout.encoding)' | cat
+utf-8
+
+$ echo test | python3 -c 'import sys; print(sys.stdin.encoding)'
+utf-8
+```
+
+### PYTHONIOENCODING
+
+Переменная окружения `PYTHONIOENCODING` позволяет явно задать кодировку для stdin/stdout/stderr:
+
+```bash
+# Задать кодировку для всех потоков
+$ PYTHONIOENCODING=utf-8 python3 -c 'import sys; print(sys.stdout.encoding)' | cat
+utf-8
+
+# Формат: encoding[:errors]
+$ PYTHONIOENCODING=utf-8:surrogateescape python3 script.py
+
+# Полезно для скриптов в пайплайнах
+$ cat data.txt | PYTHONIOENCODING=utf-8 python3 process.py | sort
+```
+
+### PYTHONUTF8 (Python 3.7+)
+
+Начиная с Python 3.7 ([PEP 540](https://peps.python.org/pep-0540/)) можно включить **UTF-8 Mode**, который переключает все стандартные потоки и `open()` по умолчанию на UTF-8, игнорируя системную локаль:
+
+```bash
+# Включить UTF-8 Mode
+$ PYTHONUTF8=1 python3 script.py
+
+# Или через флаг
+$ python3 -X utf8 script.py
+```
+
+Что меняет UTF-8 Mode:
+
+| Аспект | Без UTF-8 Mode | С UTF-8 Mode |
+|--------|----------------|---------------|
+| `open()` без encoding | `locale.getpreferredencoding()` | `'utf-8'` |
+| `sys.stdin.encoding` | Из локали | `'utf-8'` |
+| `sys.stdout.encoding` | Из локали | `'utf-8'` |
+| `sys.stderr.encoding` | Из локали | `'utf-8'` |
+
+!!! tip "Когда использовать UTF-8 Mode"
+    - На системах с не-UTF-8 локалью (старые серверы, Windows с cp1251)
+    - В Docker-контейнерах, где локаль не настроена
+    - В CI/CD пайплайнах
+    
+    Начиная с Python 3.15 UTF-8 Mode будет **включён по умолчанию** ([PEP 686](https://peps.python.org/pep-0686/)).
+
+---
+
+## 15.13 Кодировка файловой системы
+
+Кроме кодировки текстовых данных, Python должен знать, в какой кодировке хранятся **имена файлов** и **переменные окружения** операционной системы.
+
+### sys.getfilesystemencoding()
+
+```python
+import sys
+
+print(sys.getfilesystemencoding())
+# Linux/macOS: 'utf-8'
+# Windows:     'utf-8' (Python 3.6+, ранее — 'mbcs')
+```
+
+Эта кодировка используется для:
+
+- Декодирования имён файлов, полученных от ОС (`os.listdir()`, `os.scandir()`)
+- Кодирования путей, передаваемых системным вызовам (`open()`, `os.stat()`)
+- Декодирования аргументов командной строки (`sys.argv`)
+- Декодирования переменных окружения (`os.environ`)
+
+### os.listdir() и тип аргумента
+
+`os.listdir()` возвращает **разный тип** в зависимости от типа аргумента:
+
+```python
+import os
+
+# Передаём str → получаем str (имена декодируются)
+os.listdir('.')         # ['файл.txt', 'data.bin']
+os.listdir('/tmp')      # ['test.txt', 'café.md']
+
+# Передаём bytes → получаем bytes (сырые байты от ОС)
+os.listdir(b'.')        # [b'\xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb.txt', b'data.bin']
+os.listdir(b'/tmp')     # [b'test.txt', b'caf\xc3\xa9.md']
+```
+
+### surrogateescape: работа с невалидными именами файлов
+
+В Linux имена файлов — это произвольные последовательности байтов (кроме `/` и `\0`). Ядро **не проверяет** валидность UTF-8. Это значит, что можно создать файл с именем, которое не является валидным UTF-8:
+
+```bash
+# Создаём файл с невалидным UTF-8 именем
+$ touch $'\xff\xfe.txt'
+$ ls
+??.txt
+```
+
+Python 3 использует обработчик ошибок **surrogateescape** ([PEP 383](https://peps.python.org/pep-0383/)) для таких случаев. Невалидные байты заменяются на «суррогатные» code points в диапазоне U+DC80–U+DCFF:
+
+```python
+import os
+
+# Имя файла содержит невалидный UTF-8
+names = os.listdir('.')  # str с surrogate characters
+for name in names:
+    try:
+        print(name)
+    except UnicodeEncodeError:
+        # Имя содержит surrogate — не может быть напечатано
+        raw = name.encode('utf-8', 'surrogateescape')
+        print(f'Невалидное имя: {raw}')
+```
+
+Механизм surrogateescape позволяет **lossless round-trip**: декодировать байты в str и обратно в исходные байты без потерь:
+
+```python
+# bytes → str (с surrogateescape)
+>>> b'\xff\xfe.txt'.decode('utf-8', 'surrogateescape')
+'\udcff\udcfe.txt'
+
+# str → bytes (обратно)
+>>> '\udcff\udcfe.txt'.encode('utf-8', 'surrogateescape')
+b'\xff\xfe.txt'
+```
+
+!!! note "Windows: UTF-8 по умолчанию"
+    Начиная с Python 3.6 ([PEP 529](https://peps.python.org/pep-0529/)) на Windows `sys.getfilesystemencoding()` возвращает `'utf-8'` вместо `'mbcs'`, а для работы с файловой системой используются Wide API (`*W` функции), которые оперируют UTF-16 напрямую.
+
+---
+
+## 15.14 Сортировка Unicode-строк (collation)
+
+Python сортирует строки по **code points** — то есть по числовым значениям символов:
+
+```python
+>>> sorted(['б', 'а', 'в'])
+['а', 'б', 'в']  # Совпадает с алфавитным — повезло
+
+>>> sorted(['ё', 'е', 'ж'])
+['е', 'ж', 'ё']  # Неправильно! «ё» (U+0451) после «ж» (U+0436)
+```
+
+Это происходит потому, что Unicode code point буквы «ё» (U+0451) больше, чем у «ж» (U+0436). Для правильной сортировки нужно учитывать **лингвистические правила** (collation).
+
+### locale.strxfrm — системная локаль
+
+Функция `locale.strxfrm()` преобразует строку так, чтобы побайтовое сравнение давало правильный порядок для текущей локали:
+
+```python
+import locale
+
+locale.setlocale(locale.LC_COLLATE, 'ru_RU.UTF-8')
+
+>>> sorted(['ё', 'е', 'ж'], key=locale.strxfrm)
+['е', 'ё', 'ж']  # Правильный алфавитный порядок
+```
+
+!!! warning "Ограничения locale"
+    - Зависит от установленных в системе локалей (`locale -a`)
+    - Глобальное состояние — `setlocale` влияет на весь процесс
+    - Может отличаться между ОС
+
+### pyuca — Unicode Collation Algorithm
+
+Библиотека [pyuca](https://github.com/jtauber/pyuca) реализует Unicode Collation Algorithm (UCA) без зависимости от системной локали:
+
+```python
+from pyuca import Collator
+
+collator = Collator()
+
+>>> sorted(['ё', 'е', 'ж'], key=collator.sort_key)
+['е', 'ё', 'ж']  # Правильно
+
+>>> sorted(['Straße', 'Strasse', 'Strava'], key=collator.sort_key)
+['Straße', 'Strasse', 'Strava']  # Немецкий порядок
+```
+
+### babel — интернационализация
+
+Для более сложных задач (форматирование дат, чисел, валют по локали) используется [babel](https://babel.pocoo.org/):
+
+```python
+from babel import Locale
+from babel.numbers import format_decimal
+
+# Форматирование числа по правилам локали
+format_decimal(1234567.89, locale='ru_RU')  # '1 234 567,89'
+format_decimal(1234567.89, locale='en_US')  # '1,234,567.89'
+format_decimal(1234567.89, locale='de_DE')  # '1.234.567,89'
+```
+
+!!! note "Регулярные выражения и Unicode"
+    Стандартный модуль `re` в Python не поддерживает поиск по Unicode-свойствам (например, `\p{Cyrillic}`). Для этого есть библиотека [regex](https://pypi.org/project/regex/), которая поддерживает Unicode properties, вычитание множеств символов и другие расширения:
+    
+    ```python
+    import regex  # pip install regex
+    
+    # Найти все кириллические символы
+    regex.findall(r'\p{Cyrillic}+', 'Hello мир world')
+    # ['мир']
+    
+    # Вычитание множеств: все буквы кроме ASCII
+    regex.findall(r'[\p{L}--\p{ASCII}]+', 'Hello мир 世界')
+    # ['мир', '世界']
+    ```
+
+---
+
 ## Резюме
 
 | Концепция | Python 2 | Python 3 |
@@ -819,6 +1139,8 @@ UnicodeEncodeError: 'undefined' codec can't encode characters
 | Литерал текста | `u"текст"` | `"текст"` |
 | Литерал байтов | `"bytes"` | `b"bytes"` |
 | Кодировка по умолчанию | ASCII | UTF-8 |
+| Кодировка исходного кода | Нужна декларация | UTF-8 по умолчанию |
+| Кодировка stdout в pipe | `None` | Из локали |
 
 **Правила работы с кодировками в Python 3:**
 
@@ -826,6 +1148,8 @@ UnicodeEncodeError: 'undefined' codec can't encode characters
 2. **Используйте UTF-8** если нет особых требований
 3. **Не смешивайте `str` и `bytes`** — явно конвертируйте
 4. **Декодируйте на входе, кодируйте на выходе** — внутри программы работайте с `str`
+5. **Используйте `PYTHONIOENCODING`** или UTF-8 Mode для скриптов в пайплайнах
+6. **Учитывайте `surrogateescape`** при работе с именами файлов в Linux
 
 
 ??? question "Упражнения"
