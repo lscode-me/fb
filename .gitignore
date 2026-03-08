@@ -4,3 +4,4 @@ site/
 .codex/
 *.pdf
 BOOK_STRUCTURE.md
+python_strings.wiki
