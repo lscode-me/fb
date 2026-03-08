@@ -99,6 +99,8 @@ nav:
       - "Глава 49. Namespaces и контейнеры": chapters/ch5/49-containers.md
       - "Глава 50. Токенизация для LLM": chapters/ch5/50-tokenization.md
   - Глоссарий: glossary.md
+  - Индекс команд: commands.md
+  - Индекс модулей Python: python-modules.md
 
 theme:
   name: material
