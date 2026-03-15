@@ -1,13 +1,15 @@
 # robots.txt для fb.lscode.me
 # Полное руководство по файлам и форматам
 
-User-agent: *
-Allow: /
-
 # Sitemap для лучшей индексации
 Sitemap: https://fb.lscode.me/sitemap.xml
 
-# Разрешаем всем поисковикам
+User-agent: *
+Allow: /
+# Блокируем технические страницы
+Disallow: /search/
+Disallow: /cdn-cgi/
+
 User-agent: Googlebot
 Allow: /
 
@@ -17,6 +19,3 @@ Allow: /
 User-agent: Yandex
 Allow: /
 
-# Блокируем технические страницы
-Disallow: /search/
-Disallow: /cdn-cgi/
