@@ -53,6 +53,9 @@ Code point: U+041F (десятичное: 1055)
 | **UTF-16** | Другой способ хранения | A = 0x0041 (2 байта) |
 | **UTF-32** | Ещё один способ | A = 0x00000041 (4 байта) |
 
+!!! info "Все три кодировки покрывают весь Unicode"
+    UTF-8, UTF-16 и UTF-32 — это три **равноценных** способа записи одних и тех же символов. Каждая из них способна закодировать **любой** code point Unicode (от U+0000 до U+10FFFF). Разница только в том, сколько байтов и каких используется для представления. Ни одна из кодировок не расширяет и не ограничивает набор доступных символов — это всегда один и тот же каталог Unicode.
+
 ```python
 char = "A"
 print(f"Unicode: U+{ord(char):04X}")    # Unicode: U+0041
@@ -60,6 +63,106 @@ print(f"UTF-8:   {char.encode('utf-8').hex()}")    # UTF-8:   41
 print(f"UTF-16:  {char.encode('utf-16-be').hex()}")  # UTF-16:  0041
 print(f"UTF-32:  {char.encode('utf-32-be').hex()}")  # UTF-32:  00000041
 ```
+
+### Алфавиты и Unicode: общие и уникальные символы
+
+Разные алфавиты — это просто **подмножества** каталога Unicode. Многие символы совпадают, но у каждого языка есть свои уникальные буквы:
+
+**Латиница: английский (EN), немецкий (DE), турецкий (TR)**
+
+| Символ | Code point | EN | DE | TR | Название |
+|:------:|:----------:|:--:|:--:|:--:|----------|
+| A | U+0041 | ✅ | ✅ | ✅ | Latin Capital Letter A |
+| B | U+0042 | ✅ | ✅ | ✅ | Latin Capital Letter B |
+| C | U+0043 | ✅ | ✅ | ✅ | Latin Capital Letter C |
+| Ç | U+00C7 | — | — | ✅ | Latin Capital Letter C with Cedilla |
+| D | U+0044 | ✅ | ✅ | ✅ | Latin Capital Letter D |
+| E | U+0045 | ✅ | ✅ | ✅ | Latin Capital Letter E |
+| F | U+0046 | ✅ | ✅ | ✅ | Latin Capital Letter F |
+| G | U+0047 | ✅ | ✅ | ✅ | Latin Capital Letter G |
+| Ğ | U+011E | — | — | ✅ | Latin Capital Letter G with Breve |
+| H | U+0048 | ✅ | ✅ | ✅ | Latin Capital Letter H |
+| I | U+0049 | ✅ | ✅ | ✅ | Latin Capital Letter I |
+| İ | U+0130 | — | — | ✅ | Latin Capital Letter I with Dot Above |
+| ı | U+0131 | — | — | ✅ | Latin Small Letter Dotless I |
+| J | U+004A | ✅ | ✅ | ✅ | Latin Capital Letter J |
+| K | U+004B | ✅ | ✅ | ✅ | Latin Capital Letter K |
+| L | U+004C | ✅ | ✅ | ✅ | Latin Capital Letter L |
+| M | U+004D | ✅ | ✅ | ✅ | Latin Capital Letter M |
+| N | U+004E | ✅ | ✅ | ✅ | Latin Capital Letter N |
+| O | U+004F | ✅ | ✅ | ✅ | Latin Capital Letter O |
+| Ö | U+00D6 | — | ✅ | ✅ | Latin Capital Letter O with Diaeresis |
+| P | U+0050 | ✅ | ✅ | ✅ | Latin Capital Letter P |
+| Q | U+0051 | ✅ | ✅ | — | Latin Capital Letter Q |
+| R | U+0052 | ✅ | ✅ | ✅ | Latin Capital Letter R |
+| S | U+0053 | ✅ | ✅ | ✅ | Latin Capital Letter S |
+| Ş | U+015E | — | — | ✅ | Latin Capital Letter S with Cedilla |
+| T | U+0054 | ✅ | ✅ | ✅ | Latin Capital Letter T |
+| U | U+0055 | ✅ | ✅ | ✅ | Latin Capital Letter U |
+| Ü | U+00DC | — | ✅ | ✅ | Latin Capital Letter U with Diaeresis |
+| V | U+0056 | ✅ | ✅ | ✅ | Latin Capital Letter V |
+| W | U+0057 | ✅ | ✅ | — | Latin Capital Letter W |
+| X | U+0058 | ✅ | ✅ | — | Latin Capital Letter X |
+| Y | U+0059 | ✅ | ✅ | ✅ | Latin Capital Letter Y |
+| Z | U+005A | ✅ | ✅ | ✅ | Latin Capital Letter Z |
+| Ä | U+00C4 | — | ✅ | — | Latin Capital Letter A with Diaeresis |
+| ß | U+00DF | — | ✅ | — | Latin Small Letter Sharp S |
+
+Все эти символы живут в блоках **Latin Basic** (U+0000–U+007F) и **Latin Extended** (U+0080–U+024F) — это общая латиница, из которой каждый язык берёт нужные символы. Заметьте: турецкий не использует Q, W, X, зато добавляет Ç, Ğ, İ/ı, Ö, Ş, Ü. А немецкий расширяет базовый набор буквами Ä, Ö, Ü и лигатурой ß.
+
+**Кириллица: русский (RU), украинский (UA), сербский (SR)**
+
+| Символ | Code point | RU | UA | SR | Название |
+|:------:|:----------:|:--:|:--:|:--:|----------|
+| А | U+0410 | ✅ | ✅ | ✅ | Cyrillic Capital Letter A |
+| Б | U+0411 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Be |
+| В | U+0412 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ve |
+| Г | U+0413 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ghe |
+| Ґ | U+0490 | — | ✅ | — | Cyrillic Capital Letter Ghe with Upturn |
+| Д | U+0414 | ✅ | ✅ | ✅ | Cyrillic Capital Letter De |
+| Ђ | U+0402 | — | — | ✅ | Cyrillic Capital Letter Dje |
+| Е | U+0415 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ie |
+| Є | U+0404 | — | ✅ | — | Cyrillic Capital Letter Ukrainian Ie |
+| Ё | U+0401 | ✅ | — | — | Cyrillic Capital Letter Io |
+| Ж | U+0416 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Zhe |
+| З | U+0417 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ze |
+| И | U+0418 | ✅ | ✅ | ✅ | Cyrillic Capital Letter I |
+| І | U+0406 | — | ✅ | — | Cyrillic Capital Letter Byelorussian-Ukrainian I |
+| Ї | U+0407 | — | ✅ | — | Cyrillic Capital Letter Yi |
+| Й | U+0419 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Short I |
+| Ј | U+0408 | — | — | ✅ | Cyrillic Capital Letter Je |
+| К | U+041A | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ka |
+| Л | U+041B | ✅ | ✅ | ✅ | Cyrillic Capital Letter El |
+| Љ | U+0409 | — | — | ✅ | Cyrillic Capital Letter Lje |
+| М | U+041C | ✅ | ✅ | ✅ | Cyrillic Capital Letter Em |
+| Н | U+041D | ✅ | ✅ | ✅ | Cyrillic Capital Letter En |
+| Њ | U+040A | — | — | ✅ | Cyrillic Capital Letter Nje |
+| О | U+041E | ✅ | ✅ | ✅ | Cyrillic Capital Letter O |
+| П | U+041F | ✅ | ✅ | ✅ | Cyrillic Capital Letter Pe |
+| Р | U+0420 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Er |
+| С | U+0421 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Es |
+| Т | U+0422 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Te |
+| Ћ | U+040B | — | — | ✅ | Cyrillic Capital Letter Tshe |
+| У | U+0423 | ✅ | ✅ | ✅ | Cyrillic Capital Letter U |
+| Ф | U+0424 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ef |
+| Х | U+0425 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ha |
+| Ц | U+0426 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Tse |
+| Ч | U+0427 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Che |
+| Џ | U+040F | — | — | ✅ | Cyrillic Capital Letter Dzhe |
+| Ш | U+0428 | ✅ | ✅ | ✅ | Cyrillic Capital Letter Sha |
+| Щ | U+0429 | ✅ | ✅ | — | Cyrillic Capital Letter Shcha |
+| Ъ | U+042A | ✅ | — | — | Cyrillic Capital Letter Hard Sign |
+| Ы | U+042B | ✅ | — | — | Cyrillic Capital Letter Yeru |
+| Ь | U+042C | ✅ | ✅ | — | Cyrillic Capital Letter Soft Sign |
+| Э | U+042D | ✅ | — | — | Cyrillic Capital Letter E |
+| Ю | U+042E | ✅ | ✅ | — | Cyrillic Capital Letter Yu |
+| Я | U+042F | ✅ | ✅ | ✅ | Cyrillic Capital Letter Ya |
+| Ӏ | U+04C0 | — | — | — | Cyrillic Letter Palochka (кавказские языки) |
+
+Кириллический блок (U+0400–U+04FF) содержит буквы для **всех** языков, использующих кириллицу. Русский (33 буквы), украинский (33 буквы) или сербский (30 букв) — это лишь выборки из этого общего блока. Видно, что большинство букв общие, но у каждого языка есть свои: Ё/Ъ/Ы/Э только в русском, Ґ/Є/І/Ї — в украинском, Ђ/Ј/Љ/Њ/Ћ/Џ — в сербском. А есть символы, которых нет ни в одном из этих трёх алфавитов — например, **Палочка** (Ӏ, U+04C0), используемая в кавказских языках: аварском, чеченском, ингушском, даргинском, лакском и других. Она тоже живёт в кириллическом блоке Unicode, подтверждая: блок содержит гораздо больше символов, чем любой отдельный алфавит.
+
+!!! tip "Алфавит ≠ блок Unicode"
+    Алфавит конкретного языка — это **подмножество** символов из Unicode-блока. Сам Unicode не привязан к языкам: он просто хранит все символы, а какие из них составляют алфавит — определяется языковой нормой.
 
 ### Структура Unicode
 
