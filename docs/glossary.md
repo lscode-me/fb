@@ -244,6 +244,9 @@ MUTF-8 (Modified UTF-8)
 
 ## N
 
+NUL (Null, нулевой байт, 0x00)
+:   Первый символ ASCII (код 0). Терминатор C-строк (`\0`), один из двух символов, запрещённых в именах файлов Unix (вместе с `/`). Используется как безопасный разделитель полей в `/proc/PID/environ`, `/proc/PID/cmdline`, а также в утилитах (`find -print0`, `xargs -0`, `sort -z`). В UTF-8 кодируется как `0x00`, в MUTF-8 — как `C0 80` (overlong). → [Глава 12](chapters/ch2/12-ascii.md)
+
 NFS (Network File System, сетевая файловая система)
 :   Протокол прозрачного доступа к удалённым файлам в Unix-мире. NFSv3 — stateless, NFSv4 — stateful с Kerberos-аутентификацией. Работает через RPC. → [Глава 44](chapters/ch5/44-protocols.md)
 
