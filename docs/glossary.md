@@ -54,6 +54,9 @@ Btrfs (B-tree File System)
 Checksum (контрольная сумма)
 :   Хеш-значение, вычисленное по данным для обнаружения повреждений. ZFS и Btrfs хранят checksum для **каждого** блока; ext4 и XFS — только для метаданных. → [Глава 40](chapters/ch5/40-zfs.md), [Глава 41](chapters/ch5/41-btrfs.md)
 
+CESU-8 (Compatibility Encoding Scheme for UTF-16: 8-Bit)
+:   Нестандартный вариант UTF-8, кодирующий символы вне BMP через суррогатные пары (6 байтов вместо 4). MUTF-8 = CESU-8 + overlong NUL. Встречается в Oracle DB и некоторых XML-парсерах. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
+
 Code point (кодовая позиция Unicode)
 :   Уникальный числовой идентификатор символа в Unicode (U+0000 — U+10FFFF). Один code point может занимать 1–4 байта в UTF-8 или 2–4 байта в UTF-16. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
 
@@ -155,6 +158,9 @@ Git objects (объекты Git)
 GPT (GUID Partition Table, таблица разделов GUID)
 :   Современная схема разметки дисков, замена MBR. Поддерживает до 128 разделов и диски > 2 ТБ. → [Глава 35](chapters/ch5/35-partitions.md)
 
+GB18030
+:   Китайский национальный стандарт кодирования символов. Единственная кодировка помимо UTF-*, покрывающая **все** code points Unicode. 1/2/4 байта переменной длины. Обязателен для всего ПО, продаваемого в Китае. Обратно совместим с GBK и GB2312. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
+
 gzip (GNU zip)
 :   Алгоритм сжатия на основе DEFLATE. Сжимает один файл (чаще всего tar-архив). `.tar.gz` / `.tgz` — самый распространённый формат архивов в Unix. → [Глава 24](chapters/ch3/24-archives.md)
 
@@ -173,6 +179,9 @@ Huffman coding (кодирование Хаффмана)
 :   Алгоритм сжатия без потерь: частым символам назначаются короткие битовые коды, редким — длинные. Часть DEFLATE (используется в gzip, PNG, ZIP). → [Глава 24](chapters/ch3/24-archives.md)
 
 ## I
+
+IDNA (Internationalized Domain Names in Applications)
+:   Стандарт представления Unicode-доменов в ASCII через Punycode с префиксом `xn--`. Позволяет регистрировать домены вроде `münchen.de` или `пример.рф`. Уязвим к гомографическим атакам. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
 
 Inode (index node, индексный узел)
 :   Структура данных в файловой системе, хранящая метаданные файла: размер, владелец, права, временные метки, указатели на блоки данных. Не содержит имя файла. → [Глава 3](chapters/ch1/03-metadata-inode.md)
@@ -230,6 +239,9 @@ MessagePack (MsgPack)
 mmap (memory-mapped file, файл, отображённый в память)
 :   Механизм отображения файла в память процесса. Позволяет работать с файлом как с массивом байтов. → [Глава 31](chapters/ch4/31-python-deep.md)
 
+MUTF-8 (Modified UTF-8)
+:   Нестандартный вариант UTF-8 для экосистемы Java. Два отличия: нулевой символ кодируется как `C0 80` (overlong encoding), символы вне BMP — через суррогатные пары (6 байтов). Используется в `.class` файлах, JNI, Android DEX. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
+
 ## N
 
 NFS (Network File System, сетевая файловая система)
@@ -275,6 +287,9 @@ procfs / sysfs (виртуальные файловые системы)
 Protocol Buffers (Protobuf)
 :   Бинарный формат сериализации от Google. Требует определения схемы (`.proto` файл). Компактный и быстрый. → [Глава 21](chapters/ch3/21-binary-serialization.md)
 
+Punycode
+:   Алгоритм кодирования Unicode в ASCII-совместимую форму (`a-z`, `0-9`, `-`) для доменных имён. `münchen` → `xn--mnchen-3ya`. Используется в IDNA. В Python: `'münchen'.encode('punycode')`. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
+
 ## R
 
 RAID (Redundant Array of Independent Disks, избыточный массив дисков)
@@ -318,6 +333,9 @@ SquashFS
 SSHFS
 :   Файловая система на базе FUSE, монтирующая удалённые директории через SSH. Прозрачный доступ к удалённым файлам как к локальным. → [Глава 44](chapters/ch5/44-protocols.md)
 
+Surrogate pair (суррогатная пара)
+:   Механизм UTF-16 для кодирования символов вне BMP (U+10000+). Пара 16-битных значений: high surrogate (U+D800–U+DBFF) + low surrogate (U+DC00–U+DFFF). Даёт 1 024 × 1 024 = 1 048 576 комбинаций. Суррогатные code points не являются символами. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
+
 Superblock (суперблок)
 :   Главная метаданная структура ФС: magic number, размер блока, количество inode, общий размер. Копии распределяются по группам блоков для восстановления. → [Глава 34](chapters/ch5/34-architecture.md), [Глава 36](chapters/ch5/36-unix-fs.md)
 
@@ -358,6 +376,9 @@ Unicode
 UTF-8
 :   Кодировка Unicode с переменной длиной (1–4 байта на символ). ASCII-совместима. Стандарт де-факто для web и Unix. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
 
+UTF-7
+:   7-битная кодировка Unicode (RFC 2152). Не-ASCII символы кодируются через Modified Base64 в блоках `+...−`. Использовалась в email-шлюзах 1990-х. Стала вектором XSS-атак через автодетект кодировки. Единственное живое применение — Modified UTF-7 в IMAP. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
+
 UTF-16
 :   Кодировка Unicode: 2 байта для символов BMP (U+0000–U+FFFF), 4 байта (суррогатные пары) для остальных. Используется внутри Windows, Java, JavaScript. Требует BOM для указания порядка байтов. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
 
@@ -388,6 +409,9 @@ Windows-1251
 
 Write barrier (барьер записи)
 :   Команда диску: «запиши всё предыдущее, прежде чем записывать это». Предотвращает переупорядочивание записей дисковым кешем. Критично для корректности журналирования (ext3/ext4). → [Глава 36](chapters/ch5/36-unix-fs.md)
+
+WTF-8 (Wobbly Transformation Format — 8-bit)
+:   Расширение UTF-8, допускающее непарные суррогаты. Нужен для представления «грязных» UTF-16 данных (например, имён файлов Windows с невалидными суррогатами). Используется в Rust (`OsString`) и Firefox. → [Глава 14](chapters/ch2/14-unicode-utf8.md)
 
 ## X
 
